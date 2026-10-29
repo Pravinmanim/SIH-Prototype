@@ -1,0 +1,6 @@
+roll_number,full_name,apaar_id,course_code,admission_year,date_of_birth,gender,email,phone
+2026-CSE-501,Kavita Krishnan,091234567890,CSE,2026,2005-04-12,Female,kavita.k@example.com,9876500001
+2026-CSE-502,Naveen Swamy,291234567891,CSE,2026,2005-05-18,Male,naveen.s@example.com,9876500002
+2026-CSE-503,Meenakshi Sundaram,391234567892,CSE,2026,2005-06-25,Female,meena.s@example.com,9876500003
+2026-CSE-504,Raghavendra Rao,491234567893,CSE,2026,2005-07-30,Male,raghav.r@example.com,9876500004
+2026-CSE-505,Shalini Mukherjee,591234567894,CSE,2026,2005-08-14,Female,shalini.m@example.com,9876500005

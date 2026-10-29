@@ -1,0 +1,300 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  CheckCircle, 
+  Edit3, 
+  X, 
+  ShieldAlert
+} from 'lucide-react';
+import { api } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
+import { StatusBadge } from '../components/common/StatusBadge';
+
+export const IntakePage: React.FC = () => {
+  const { isAdmin } = useAuth();
+  const [intakeData, setIntakeData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
+
+  // Edit modal
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [newIntake, setNewIntake] = useState<number>(60);
+  const [editNotes, setEditNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const fetchIntake = async () => {
+    setLoading(true);
+    try {
+      const data = await api.get<any>(`/intake?academic_year=${selectedYear}`);
+      setIntakeData(data);
+    } catch {
+      // Handled
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchIntake();
+  }, [selectedYear]);
+
+  const openEditModal = (item: any) => {
+    setEditingItem(item);
+    setNewIntake(item.approved_intake || 60);
+    setEditNotes(item.notes || '');
+    setErrorMsg(null);
+  };
+
+  const handleSaveIntake = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setSaving(true);
+    setErrorMsg(null);
+    try {
+      const res = await api.post<any>('/intake', {
+        course_id: editingItem.course_id,
+        academic_year: selectedYear,
+        approved_intake: Number(newIntake),
+        notes: editNotes
+      });
+      setSuccessMsg(res.message);
+      setEditingItem(null);
+      fetchIntake();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update intake.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Intake Capacity Monitoring</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Compare active student enrollments against configured institutional quotas.
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-semibold text-slate-600">Batch Year:</span>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none"
+          >
+            <option value={2026}>Academic Year 2026</option>
+            <option value={2025}>Academic Year 2025</option>
+            <option value={2024}>Academic Year 2024</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Mandatory Regulatory Notice */}
+      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start space-x-3">
+        <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <span className="font-semibold block">Locally Configured Values, Not Official AICTE Data</span>
+          <p className="mt-0.5 text-amber-800 m-0">
+            Intake figures shown here are maintained locally for capacity control and sanity checking. Official sanctioned quotas are governed by AICTE approval letters.
+          </p>
+        </div>
+      </div>
+
+      {successMsg && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <span>{successMsg}</span>
+          </div>
+          <button onClick={() => setSuccessMsg(null)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+        </div>
+      )}
+
+      {/* Summary Utilization Cards */}
+      {intakeData && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
+            <span className="text-xs text-slate-500 block uppercase font-semibold">Total Approved Intake</span>
+            <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{intakeData.total_approved_intake}</span>
+            <span className="text-[11px] text-slate-400">Sum of configured course seats</span>
+          </div>
+          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
+            <span className="text-xs text-slate-500 block uppercase font-semibold">Active Enrolled Students</span>
+            <span className="text-2xl font-extrabold text-blue-600 mt-1 block">{intakeData.total_enrolled_students}</span>
+            <span className="text-[11px] text-slate-400">Non-archived records in {selectedYear}</span>
+          </div>
+          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
+            <span className="text-xs text-slate-500 block uppercase font-semibold">Overall Seat Utilization</span>
+            <span className={`text-2xl font-extrabold mt-1 block ${
+              intakeData.overall_utilization > 100 ? 'text-rose-600' :
+              intakeData.overall_utilization >= 90 ? 'text-amber-600' : 'text-emerald-600'
+            }`}>
+              {intakeData.overall_utilization}%
+            </span>
+            <span className="text-[11px] text-slate-400">Capacity metric</span>
+          </div>
+        </div>
+      )}
+
+      {/* Intake Table */}
+      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-700">
+            <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="px-5 py-3.5 font-semibold">Course</th>
+                <th className="px-5 py-3.5 font-semibold">Approved Intake</th>
+                <th className="px-5 py-3.5 font-semibold">Enrolled</th>
+                <th className="px-5 py-3.5 font-semibold">Remaining</th>
+                <th className="px-5 py-3.5 font-semibold">Utilization</th>
+                <th className="px-5 py-3.5 font-semibold">Status</th>
+                {isAdmin && <th className="px-5 py-3.5 font-semibold text-right">Action</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200/80">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-xs">
+                    Loading intake capacity records...
+                  </td>
+                </tr>
+              ) : !intakeData || intakeData.items.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500 text-xs">
+                    No intake records found for this year.
+                  </td>
+                </tr>
+              ) : (
+                intakeData.items.map((item: any) => (
+                  <tr key={item.course_id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="font-semibold text-slate-900">{item.course_name}</div>
+                      <div className="text-xs text-slate-400 font-mono">{item.course_code}</div>
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-800">
+                      {item.has_config ? item.approved_intake : <span className="text-slate-400 italic">Not Set</span>}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-sm text-slate-700">
+                      {item.current_count}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-sm">
+                      {!item.has_config ? (
+                        <span className="text-slate-400">—</span>
+                      ) : item.remaining_capacity < 0 ? (
+                        <span className="text-rose-600 font-bold">Over by {Math.abs(item.remaining_capacity)}</span>
+                      ) : (
+                        <span className="text-emerald-700 font-semibold">{item.remaining_capacity} available</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs">
+                      {item.has_config ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 bg-slate-200 h-2 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${
+                                item.utilization_percent > 100 ? 'bg-rose-500' :
+                                item.utilization_percent >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
+                              }`} 
+                              style={{ width: `${Math.min(100, item.utilization_percent)}%` }}
+                            ></div>
+                          </div>
+                          <span>{item.utilization_percent}%</span>
+                        </div>
+                      ) : '—'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <StatusBadge status={item.status} size="sm" />
+                    </td>
+                    {isAdmin && (
+                      <td className="px-5 py-3.5 text-right">
+                        <button
+                          onClick={() => openEditModal(item)}
+                          className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg transition"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 mr-1" />
+                          Set Intake
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* SET INTAKE MODAL (Admin Only) */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setEditingItem(null)}></div>
+          <div className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl z-10 border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h2 className="text-base font-bold text-slate-900 m-0">
+                Configure Quota: {editingItem.course_code}
+              </h2>
+              <button onClick={() => setEditingItem(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {errorMsg && (
+              <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200 m-0">
+                {errorMsg}
+              </p>
+            )}
+
+            <form onSubmit={handleSaveIntake} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Approved Annual Intake (Number of Seats) *
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={newIntake}
+                  onChange={(e) => setNewIntake(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Reference Approval Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="e.g. AICTE Approval Extension Letter No. 2026/AIT/01"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50"
+                >
+                  {saving ? 'Updating...' : 'Save Configuration'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

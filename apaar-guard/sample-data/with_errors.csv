@@ -1,0 +1,9 @@
+roll_number,full_name,apaar_id,course_code,admission_year,date_of_birth,gender,email,phone
+2026-ECE-601,Devendra Singh,778899112233,ECE,2026,2005-01-15,Male,dev.s@example.com,9876511111
+,,889900112244,ECE,2026,2005-02-20,Female,anon@example.com,9876511112
+2026-ECE-602,Rakesh Pillai,12345678,ECE,2026,2005-03-10,Male,rakesh.p@example.com,9876511113
+2026-ECE-603,Sunita Aggarwal,99AA88BB77CC,ECE,2026,2005-04-05,Female,sunita.a@example.com,9876511114
+2026-ECE-604,Tarun Kapoor,998877665544,ECE,2026,2005-05-12,Male,tarun.k@example.com,9876511115
+2026-CSE-001,Vipin Chandra,331122445566,CSE,2026,2005-06-18,Male,vipin.c@example.com,9876511116
+2026-XYZ-607,Yogesh Bhatt,442233556677,INVALID_COURSE,2026,2005-07-22,Male,yogesh.b@example.com,9876511117
+2026-ECE-608,Zeenat Aman,553344667788,ECE,1995,2005-08-08,Female,zeenat.a@example.com,9876511118

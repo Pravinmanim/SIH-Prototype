@@ -1,0 +1,208 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Shield, Eye, EyeOff, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { api } from '../services/api';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+interface DemoAccount {
+  id: number;
+  email: string;
+  name: string;
+  role: string;
+  role_label: string;
+  institution_name: string;
+  institution_code: string;
+  preset_password: string;
+}
+
+export const LoginPage: React.FC = () => {
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    api.get<{ disclaimer: string; accounts: DemoAccount[] }>('/auth/demo-accounts')
+      .then(res => setDemoAccounts(res.accounts))
+      .catch(() => {});
+  }, []);
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      await login(data.email, data.password);
+      navigate('/dashboard');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const selectDemoAccount = (acc: DemoAccount) => {
+    setValue('email', acc.email);
+    setValue('password', acc.preset_password);
+    setErrorMessage(null);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#F6F8FC]">
+      {/* Brand Header */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#142B4A] text-white shadow-lg mb-4">
+          <Shield className="w-9 h-9 text-blue-400" />
+        </div>
+        <h2 className="text-3xl font-extrabold text-[#172033] tracking-tight">APAAR GUARD</h2>
+        <p className="mt-2 text-sm text-slate-600 font-medium">
+          Accurate Student Records. Transparent Verification. Trusted Data.
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 shadow-sm border border-slate-200/80 rounded-2xl sm:px-10">
+          {errorMessage && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start space-x-3">
+              <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Institutional Email Address
+              </label>
+              <div className="relative rounded-lg shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Mail className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type="email"
+                  {...register('email')}
+                  placeholder="asha.admin@apex.edu"
+                  className="block w-full pl-10 pr-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                Password
+              </label>
+              <div className="relative rounded-lg shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="h-4 w-4 text-slate-400" />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  {...register('password')}
+                  placeholder="••••••••••••"
+                  className="block w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isLoading ? (
+                <span>Authenticating...</span>
+              ) : (
+                <>
+                  <span>Sign In to Institutional Portal</span>
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Demo Quick-Select Section */}
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Demo Accounts Quick-Select
+              </span>
+              <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 font-medium">
+                Demo login — not production-secure
+              </span>
+            </div>
+            
+            <p className="text-xs text-slate-500 mb-3">
+              Click any role to auto-fill credentials and test institution isolation:
+            </p>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {demoAccounts.map((acc) => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onClick={() => selectDemoAccount(acc)}
+                  className="w-full text-left p-2.5 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all text-xs flex items-center justify-between group cursor-pointer"
+                >
+                  <div>
+                    <div className="font-semibold text-slate-800 group-hover:text-blue-700">
+                      {acc.name}
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {acc.institution_name} ({acc.institution_code})
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded font-medium text-[10px] ${
+                    acc.role === 'institution_admin' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}>
+                    {acc.role_label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
