@@ -6,6 +6,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   helperText?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  isRequired?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(({
@@ -14,17 +15,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
   helperText,
   leftIcon,
   rightIcon,
+  isRequired,
   className = '',
   id,
+  required,
   ...props
 }, ref) => {
-  const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+  const inputId = id || (label ? label.toLowerCase().replace(/[^a-z0-9]+/g, '-') : undefined);
+  const errorId = inputId ? `${inputId}-error` : undefined;
+  const helperId = inputId ? `${inputId}-helper` : undefined;
+  const isFieldRequired = isRequired || required;
 
   return (
     <div className="w-full space-y-1">
       {label && (
         <label htmlFor={inputId} className="block text-xs font-semibold text-slate-700">
           {label}
+          {isFieldRequired && (
+            <span className="text-rose-500 ml-0.5 font-bold" aria-hidden="true">
+              *
+            </span>
+          )}
+          {isFieldRequired && <span className="sr-only"> (required)</span>}
         </label>
       )}
       <div className="relative rounded-md shadow-sm">
@@ -36,6 +48,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
         <input
           ref={ref}
           id={inputId}
+          required={required}
+          aria-invalid={!!error}
+          aria-describedby={error ? errorId : helperText ? helperId : undefined}
           className={`block w-full rounded-md border text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
             leftIcon ? 'pl-9' : 'pl-3'
           } ${rightIcon ? 'pr-9' : 'pr-3'} py-2 ${
@@ -52,9 +67,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(({
         )}
       </div>
       {error ? (
-        <p className="text-xs text-rose-600 font-medium">{error}</p>
+        <p id={errorId} role="alert" className="text-xs text-rose-600 font-medium">
+          {error}
+        </p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500">{helperText}</p>
+        <p id={helperId} className="text-xs text-slate-500">
+          {helperText}
+        </p>
       ) : null}
     </div>
   );

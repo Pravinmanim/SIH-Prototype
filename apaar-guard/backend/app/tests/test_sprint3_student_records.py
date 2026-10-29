@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -121,10 +122,11 @@ def test_officer_cannot_create_update_archive():
 
 def test_admin_update_and_archive_flow():
     admin_headers = get_auth_headers("asha.admin@apex.edu")
+    test_roll = f"2026-CSE-ARC-{uuid.uuid4().hex[:6]}"
     
     # Create a student to test update and archive
     res_create = client.post("/api/students", json={
-        "roll_number": "2026-CSE-777",
+        "roll_number": test_roll,
         "full_name": "Student To Archive",
         "course_id": 1,
         "admission_year": 2026
@@ -147,7 +149,7 @@ def test_admin_update_and_archive_flow():
     assert "archived successfully" in res_del.json()["message"]
 
     # Confirm it does not show up in active student list
-    res_check = client.get(f"/api/students?search=2026-CSE-777", headers=admin_headers)
+    res_check = client.get(f"/api/students?search={test_roll}", headers=admin_headers)
     assert res_check.status_code == 200
     assert res_check.json()["total"] == 0
 

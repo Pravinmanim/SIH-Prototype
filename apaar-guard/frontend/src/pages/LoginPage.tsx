@@ -6,10 +6,13 @@ import * as z from 'zod';
 import { Shield, Eye, EyeOff, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/api';
+import { requiredEmailSchema } from '../utils/validation';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: requiredEmailSchema,
+  password: z.string()
+    .transform((v) => v.trim())
+    .refine((v) => v.length > 0, { message: 'Password is required.' }),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -40,6 +43,8 @@ export const LoginPage: React.FC = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: 'onTouched',
+    shouldFocusError: true,
   });
 
   useEffect(() => {
@@ -61,15 +66,15 @@ export const LoginPage: React.FC = () => {
       await login(data.email, data.password);
       navigate('/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Login failed. Please check your credentials.');
+      setErrorMessage(err.message || 'Unable to sign in with those credentials.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const selectDemoAccount = (acc: DemoAccount) => {
-    setValue('email', acc.email);
-    setValue('password', acc.preset_password);
+    setValue('email', acc.email, { shouldValidate: true });
+    setValue('password', acc.preset_password, { shouldValidate: true });
     setErrorMessage(null);
   };
 
@@ -89,49 +94,70 @@ export const LoginPage: React.FC = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-6 shadow-sm border border-slate-200/80 rounded-2xl sm:px-10">
           {errorMessage && (
-            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start space-x-3">
+            <div role="alert" className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-start space-x-3">
               <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label htmlFor="login-email" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Institutional Email Address
+                <span className="text-rose-500 ml-0.5 font-bold" aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
               </label>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Mail className="h-4 w-4 text-slate-400" />
                 </div>
                 <input
+                  id="login-email"
                   type="email"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'login-email-error' : undefined}
                   {...register('email')}
                   placeholder="asha.admin@apex.edu"
-                  className="block w-full pl-10 pr-3 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                  className={`block w-full pl-10 pr-3 py-2.5 text-sm border rounded-lg focus:ring-2 outline-none transition ${
+                    errors.email 
+                      ? 'border-rose-400 text-rose-900 focus:border-rose-500 focus:ring-rose-200' 
+                      : 'border-slate-300 focus:ring-blue-600 focus:border-blue-600'
+                  }`}
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-xs text-rose-600">{errors.email.message}</p>
+                <p id="login-email-error" role="alert" className="mt-1 text-xs text-rose-600 font-medium">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label htmlFor="login-password" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Password
+                <span className="text-rose-500 ml-0.5 font-bold" aria-hidden="true">*</span>
+                <span className="sr-only"> (required)</span>
               </label>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                   <Lock className="h-4 w-4 text-slate-400" />
                 </div>
                 <input
+                  id="login-password"
                   type={showPassword ? 'text' : 'password'}
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'login-password-error' : undefined}
                   {...register('password')}
                   placeholder="••••••••••••"
-                  className="block w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                  className={`block w-full pl-10 pr-10 py-2.5 text-sm border rounded-lg focus:ring-2 outline-none transition ${
+                    errors.password 
+                      ? 'border-rose-400 text-rose-900 focus:border-rose-500 focus:ring-rose-200' 
+                      : 'border-slate-300 focus:ring-blue-600 focus:border-blue-600'
+                  }`}
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
@@ -139,7 +165,9 @@ export const LoginPage: React.FC = () => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-xs text-rose-600">{errors.password.message}</p>
+                <p id="login-password-error" role="alert" className="mt-1 text-xs text-rose-600 font-medium">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 

@@ -46,7 +46,7 @@ def test_login_invalid_password_safe_error():
         "password": "wrong_password_999"
     })
     assert response.status_code == 401
-    assert "Invalid email or password" in response.json()["detail"]
+    assert response.json()["detail"] == "Unable to sign in with those credentials."
 
 def test_auth_me_authenticated_and_unauthenticated():
     # Fresh client without cookies

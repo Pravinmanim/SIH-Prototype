@@ -84,12 +84,16 @@ export const VerificationPage: React.FC = () => {
 
   const executeAction = async (action: string) => {
     if (!selectedCaseId) return;
+    if ((action === 'resolve' || action === 'mark_false_positive') && !actionNote.trim()) {
+      setActionError("A written justification reason is mandatory when transitioning to 'Resolved' or 'False Positive'.");
+      return;
+    }
     setSubmittingAction(true);
     setActionError(null);
     try {
       const res = await api.post<any>(`/review/cases/${selectedCaseId}/action`, {
         action,
-        note_text: actionNote
+        note_text: actionNote.trim()
       });
       setSuccessToast(res.message);
       // Reload detail and list
@@ -98,7 +102,11 @@ export const VerificationPage: React.FC = () => {
       setActionNote('');
       fetchCases();
     } catch (err: any) {
-      setActionError(err.message || 'Action failed.');
+      if (err.status === 409) {
+        setActionError(err.message || 'Illegal case status transition.');
+      } else {
+        setActionError(err.message || 'Action failed.');
+      }
     } finally {
       setSubmittingAction(false);
     }
@@ -396,16 +404,33 @@ export const VerificationPage: React.FC = () => {
 
                 {/* Action Form */}
                 <div className="pt-4 border-t border-slate-200 space-y-3">
+                  {actionError && (
+                    <div id="action-error" role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start space-x-2">
+                      <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                      <span className="font-medium">{actionError}</span>
+                    </div>
+                  )}
+
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                    <label htmlFor="case-action-reason" className="block text-xs font-bold text-slate-700 mb-1">
                       Action Reason / Written Justification (Mandatory for Resolve / False Positive)
                     </label>
                     <textarea
+                      id="case-action-reason"
                       rows={2}
+                      aria-invalid={!!actionError}
+                      aria-describedby={actionError ? 'action-error' : undefined}
                       value={actionNote}
-                      onChange={(e) => setActionNote(e.target.value)}
+                      onChange={(e) => {
+                        setActionNote(e.target.value);
+                        if (actionError) setActionError(null);
+                      }}
                       placeholder="Enter verification rationale, physical register reference, or reason..."
-                      className="w-full text-xs p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                      className={`w-full text-xs p-2.5 border rounded-lg outline-none focus:ring-2 transition ${
+                        actionError
+                          ? 'border-rose-400 text-rose-900 focus:border-rose-500 focus:ring-rose-200'
+                          : 'border-slate-300 focus:ring-blue-600'
+                      }`}
                     />
                   </div>
 

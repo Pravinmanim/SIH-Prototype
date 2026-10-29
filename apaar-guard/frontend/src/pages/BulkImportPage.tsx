@@ -55,7 +55,14 @@ export const BulkImportPage: React.FC = () => {
   // Handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selected = e.target.files[0];
+      const lower = selected.name.toLowerCase();
+      if (!lower.endsWith('.csv') && !lower.endsWith('.xlsx') && !lower.endsWith('.xls')) {
+        setErrorMsg('Unsupported file format. Please upload a valid .csv, .xlsx, or .xls file.');
+        setFile(null);
+        return;
+      }
+      setFile(selected);
       setErrorMsg(null);
     }
   };

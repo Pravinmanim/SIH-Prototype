@@ -17,7 +17,8 @@ export const IntakePage: React.FC = () => {
 
   // Edit modal
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [newIntake, setNewIntake] = useState<number>(60);
+  const [newIntake, setNewIntake] = useState<string>('60');
+  const [intakeError, setIntakeError] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -41,7 +42,8 @@ export const IntakePage: React.FC = () => {
 
   const openEditModal = (item: any) => {
     setEditingItem(item);
-    setNewIntake(item.approved_intake || 60);
+    setNewIntake(String(item.approved_intake || 60));
+    setIntakeError(null);
     setEditNotes(item.notes || '');
     setErrorMsg(null);
   };
@@ -49,13 +51,31 @@ export const IntakePage: React.FC = () => {
   const handleSaveIntake = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
+
+    // Validate whole positive integer >= 1
+    const rawStr = String(newIntake).trim();
+    if (!rawStr || !/^\d+$/.test(rawStr)) {
+      setIntakeError('Enter a valid whole-number intake capacity.');
+      return;
+    }
+    const parsedNum = Number(rawStr);
+    if (!Number.isInteger(parsedNum) || parsedNum < 1) {
+      setIntakeError('Enter a valid whole-number intake capacity.');
+      return;
+    }
+    if (parsedNum > 1000) {
+      setIntakeError('Intake capacity cannot exceed 1000 seats.');
+      return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
+    setIntakeError(null);
     try {
       const res = await api.post<any>('/intake', {
         course_id: editingItem.course_id,
         academic_year: selectedYear,
-        approved_intake: Number(newIntake),
+        approved_intake: parsedNum,
         notes: editNotes
       });
       setSuccessMsg(res.message);
@@ -207,6 +227,11 @@ export const IntakePage: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5">
                       <StatusBadge status={item.status} size="sm" />
+                      {(!item.has_config || item.approved_intake <= 0) && (
+                        <p className="text-[11px] text-amber-700 mt-1 font-medium leading-tight max-w-[200px]">
+                          Intake configuration is missing. Configure the capacity to calculate utilization.
+                        </p>
+                      )}
                     </td>
                     {isAdmin && (
                       <td className="px-5 py-3.5 text-right">
@@ -242,24 +267,44 @@ export const IntakePage: React.FC = () => {
             </div>
 
             {errorMsg && (
-              <p className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200 m-0">
+              <div role="alert" className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200 m-0">
                 {errorMsg}
-              </p>
+              </div>
             )}
 
-            <form onSubmit={handleSaveIntake} className="space-y-4">
+            <form onSubmit={handleSaveIntake} className="space-y-4" noValidate>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Approved Annual Intake (Number of Seats) *
+                <label htmlFor="intake-approved" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Approved Annual Intake (Number of Seats)
+                  <span className="text-rose-500 ml-0.5 font-bold" aria-hidden="true">*</span>
+                  <span className="sr-only"> (required)</span>
                 </label>
                 <input
+                  id="intake-approved"
                   type="number"
+                  inputMode="numeric"
                   min={1}
                   max={1000}
+                  step={1}
+                  required
+                  aria-invalid={!!intakeError}
+                  aria-describedby={intakeError ? 'intake-approved-error' : undefined}
                   value={newIntake}
-                  onChange={(e) => setNewIntake(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                  onChange={(e) => {
+                    setNewIntake(e.target.value);
+                    if (intakeError) setIntakeError(null);
+                  }}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 transition ${
+                    intakeError
+                      ? 'border-rose-400 text-rose-900 focus:border-rose-500 focus:ring-rose-200'
+                      : 'border-slate-300 focus:ring-blue-600'
+                  }`}
                 />
+                {intakeError && (
+                  <p id="intake-approved-error" role="alert" className="mt-1 text-xs text-rose-600 font-medium">
+                    {intakeError}
+                  </p>
+                )}
               </div>
 
               <div>

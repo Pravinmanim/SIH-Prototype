@@ -12,6 +12,12 @@ from app.models.import_job import ImportJob, ImportJobError
 from app.services.validation.engine import validation_engine
 from app.services.validation.rules import normalize_apaar, normalize_name
 from app.services.audit_service import record_audit_log
+from app.schemas.student import (
+    validate_full_name,
+    validate_indian_phone,
+    validate_email_format,
+    validate_dob_calendar
+)
 
 FIELD_SYNONYMS = {
     "roll_number": ["roll", "roll_number", "rollno", "roll_no", "registration_no", "reg_no", "student_id"],
@@ -119,8 +125,17 @@ def validate_and_stage_import(
 
         if not roll:
             row_errors.append("Roll number is required and cannot be blank.")
+        elif len(roll) > 100:
+            row_errors.append("Roll number cannot exceed 100 characters.")
+
         if not name:
             row_errors.append("Student full name is required.")
+        else:
+            try:
+                validate_full_name(name, required=True)
+            except ValueError as ve:
+                row_errors.append(f"Student name '{name}': {str(ve)}")
+
         if not course_str:
             row_errors.append("Course code is required.")
         elif course_str not in course_map:
@@ -137,6 +152,24 @@ def validate_and_stage_import(
                     row_errors.append(f"Admission year {adm_year} is out of allowable range (2000 - {current_year + 2}).")
             except ValueError:
                 row_errors.append(f"Admission year '{year_str}' must be a 4-digit number.")
+
+        if phone:
+            try:
+                validate_indian_phone(phone, required=False)
+            except ValueError as ve:
+                row_errors.append(f"Mobile number '{phone}': {str(ve)}")
+
+        if email:
+            try:
+                validate_email_format(email, required=False)
+            except ValueError as ve:
+                row_errors.append(f"Email '{email}': {str(ve)}")
+
+        if dob:
+            try:
+                validate_dob_calendar(dob)
+            except ValueError as ve:
+                row_errors.append(f"Date of birth '{dob}': {str(ve)}")
 
         norm_apaar = normalize_apaar(apaar)
         if norm_apaar:

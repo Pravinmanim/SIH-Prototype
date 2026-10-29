@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_admin
@@ -17,10 +17,31 @@ router = APIRouter(prefix="/intake", tags=["Intake Monitoring"])
 
 class IntakeUpdateRequest(BaseModel):
     course_id: int
-    academic_year: int = Field(..., ge=2000, le=2030)
-    approved_intake: int = Field(..., ge=1, le=1000)
+    academic_year: int
+    approved_intake: int
     notes: str = ""
     source: str = "Entered by institution admin"
+
+    @field_validator("course_id")
+    @classmethod
+    def validate_course_id(cls, v):
+        if not v or v < 1:
+            raise ValueError("Select a valid course.")
+        return v
+
+    @field_validator("academic_year")
+    @classmethod
+    def validate_academic_year(cls, v):
+        if v < 2000 or v > 2030:
+            raise ValueError("Select a valid academic year.")
+        return v
+
+    @field_validator("approved_intake")
+    @classmethod
+    def validate_approved_intake(cls, v):
+        if v is None or not isinstance(v, int) or v < 1:
+            raise ValueError("Enter a valid whole-number intake capacity.")
+        return v
 
 @router.get("")
 def list_intake_monitoring(
@@ -80,6 +101,7 @@ def list_intake_monitoring(
             "remaining_capacity": remaining,
             "utilization_percent": utilization,
             "status": status_label,
+            "missing_alert": "Intake configuration is missing. Configure the capacity to calculate utilization." if (not config or approved <= 0) else None,
             "has_config": bool(config),
             "source": config.source if config else "None",
             "notes": config.notes if config else None,
@@ -111,7 +133,7 @@ def set_course_intake(
         Course.institution_id == current_user.institution_id
     ).first()
     if not course:
-        raise HTTPException(status_code=400, detail="The course does not belong to your institution.")
+        raise HTTPException(status_code=400, detail="Select a valid course.")
 
     config = db.query(IntakeConfiguration).filter(
         IntakeConfiguration.institution_id == current_user.institution_id,

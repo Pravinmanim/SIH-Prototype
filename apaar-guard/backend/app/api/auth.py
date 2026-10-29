@@ -29,7 +29,7 @@ def login(
         )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password. Please verify your credentials and try again."
+            detail="Unable to sign in with those credentials."
         )
 
     if not user.is_active:

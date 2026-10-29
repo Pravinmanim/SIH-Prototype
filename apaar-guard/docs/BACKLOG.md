@@ -70,6 +70,19 @@
 - [x] **S6.5** Documentation (README, architecture, commands, demo logins) - *Done*
 - [x] **S6.6** 3-minute SIH demo script - *Done*
 
+### Increment 7: Comprehensive Form Validation System
+- [x] **V1.1** Indian mobile number validation (exactly 10 digits starting with 6, 7, 8, 9; digits-only filter; field-specific error messages) - *Done*
+- [x] **V1.2** Student name validation (2-255 characters, reject whitespace-only, Unicode Indic & international script support with combining marks, case preservation) - *Done*
+- [x] **V1.3** APAAR ID format & duplicate validation (12 digits numeric, leading zero preservation, empty APAAR allowed, duplicate collision prevention) - *Done*
+- [x] **V1.4** Date of Birth validation (valid calendar dates, leap year verification, future date prevention) - *Done*
+- [x] **V1.5** Academic Year & Course validation (2000-2030 range, institution-scoped course catalog validation) - *Done*
+- [x] **V1.6** Intake Capacity validation (whole positive integer >= 1, decimals/negatives/zero rejected, missing configuration alert) - *Done*
+- [x] **V1.7** Login & Credential security validation (generic auth error message, prevent privilege escalation, no secrets in logs) - *Done*
+- [x] **V1.8** Bulk Import row-level validation (file format check .csv/.xlsx/.xls, phone/DOB/email/APAAR row verification before commit) - *Done*
+- [x] **V1.9** Review status state machine & mandatory reason validation (409 Conflict on illegal transitions, required written justification on resolve/false-positive) - *Done*
+- [x] **V1.10** Accessible UX form elements (asterisk indicators on required fields, aria-invalid, aria-describedby, focus first error on submit) - *Done*
+- [x] **V1.11** Comprehensive validation test suite (13 new pytest tests, 49/49 total backend tests passing, 0 TypeScript compilation errors) - *Done*
+
 ---
 
 ## Out of Scope ("Later" in Backlog)

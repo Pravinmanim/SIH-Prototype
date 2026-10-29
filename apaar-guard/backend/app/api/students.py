@@ -214,6 +214,18 @@ def create_student(
             detail=f"Roll number '{req.roll_number}' is already assigned in admission year {req.admission_year}."
         )
 
+    if req.apaar_id and req.apaar_id.strip():
+        existing_apaar = db.query(Student).filter(
+            Student.institution_id == current_user.institution_id,
+            Student.apaar_id == req.apaar_id.strip(),
+            Student.is_archived == False
+        ).first()
+        if existing_apaar:
+            raise HTTPException(
+                status_code=400,
+                detail="This APAAR ID matches an existing record. Review the duplicate alert."
+            )
+
     student = Student(
         institution_id=current_user.institution_id,
         course_id=req.course_id,
@@ -321,7 +333,20 @@ def update_student(
     if req.full_name is not None:
         student.full_name = req.full_name.strip()
     if req.apaar_id is not None:
-        student.apaar_id = req.apaar_id.strip() if req.apaar_id.strip() else None
+        new_apaar = req.apaar_id.strip() if req.apaar_id.strip() else None
+        if new_apaar:
+            existing_apaar = db.query(Student).filter(
+                Student.institution_id == current_user.institution_id,
+                Student.apaar_id == new_apaar,
+                Student.id != student.id,
+                Student.is_archived == False
+            ).first()
+            if existing_apaar:
+                raise HTTPException(
+                    status_code=400,
+                    detail="This APAAR ID matches an existing record. Review the duplicate alert."
+                )
+        student.apaar_id = new_apaar
     if req.admission_year is not None:
         student.admission_year = req.admission_year
     if req.date_of_birth is not None:

@@ -1,10 +1,28 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+import re
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 from datetime import datetime
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v):
+        if not v or not str(v).strip():
+            raise ValueError("Email address is required.")
+        s = str(v).strip().lower()
+        if not re.fullmatch(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", s):
+            raise ValueError("Enter a valid email address.")
+        return s
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v):
+        if not v or not str(v).strip():
+            raise ValueError("Password is required.")
+        return v
 
 class InstitutionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

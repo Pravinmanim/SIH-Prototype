@@ -22,17 +22,29 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/api';
 import type { StudentListItem, StudentDetail, Course, PaginatedStudents, StudentRevealResponse } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { Input, Select } from '../components/ui';
+import {
+  studentNameSchema,
+  indianPhoneSchema,
+  apaarIdSchema,
+  emailSchema,
+  dobSchema,
+  rollNumberSchema,
+  academicYearSchema,
+  courseIdSchema,
+  sanitizeDigitsOnly,
+} from '../utils/validation';
 
 const studentSchema = z.object({
-  roll_number: z.string().min(1, 'Roll number is required').max(100),
-  full_name: z.string().min(2, 'Full name must be at least 2 characters').max(255),
-  apaar_id: z.string().optional(),
-  course_id: z.number().min(1, 'Please select a course'),
-  admission_year: z.number().min(2000, 'Invalid year').max(2030, 'Invalid year'),
-  date_of_birth: z.string().optional(),
+  roll_number: rollNumberSchema,
+  full_name: studentNameSchema,
+  apaar_id: apaarIdSchema,
+  course_id: courseIdSchema,
+  admission_year: academicYearSchema,
+  date_of_birth: dobSchema,
   gender: z.string().optional(),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: emailSchema,
+  phone: indianPhoneSchema,
 });
 
 type StudentFormData = z.infer<typeof studentSchema>;
@@ -160,6 +172,8 @@ export const StudentsPage: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema) as any,
+    mode: 'onTouched',
+    shouldFocusError: true,
   });
 
   const openAddModal = () => {
@@ -619,107 +633,103 @@ export const StudentsPage: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 pt-4">
+            <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 pt-4" noValidate>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Roll Number *</label>
-                  <input
-                    type="text"
-                    {...register('roll_number')}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  {errors.roll_number && <p className="text-xs text-rose-600 mt-1">{errors.roll_number.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Admission Year *</label>
-                  <input
-                    type="number"
-                    {...register('admission_year', { valueAsNumber: true })}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  {errors.admission_year && <p className="text-xs text-rose-600 mt-1">{errors.admission_year.message}</p>}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Student Full Name *</label>
-                <input
-                  type="text"
-                  {...register('full_name')}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                <Input
+                  label="Roll Number"
+                  isRequired
+                  placeholder="e.g. 2026-CSE-001"
+                  {...register('roll_number')}
+                  error={errors.roll_number?.message}
                 />
-                {errors.full_name && <p className="text-xs text-rose-600 mt-1">{errors.full_name.message}</p>}
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  APAAR ID (12 Digits, optional)
-                </label>
-                <input
-                  type="text"
-                  maxLength={12}
-                  {...register('apaar_id')}
-                  placeholder="e.g. 012345678901 (leading zero preserved)"
-                  className="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+                <Input
+                  label="Admission Year"
+                  type="number"
+                  isRequired
+                  min={2000}
+                  max={2030}
+                  {...register('admission_year', { valueAsNumber: true })}
+                  error={errors.admission_year?.message}
                 />
-                <p className="text-[11px] text-slate-500 mt-0.5">Stored as string to preserve leading zeros.</p>
-                {errors.apaar_id && <p className="text-xs text-rose-600 mt-1">{errors.apaar_id.message}</p>}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Course *</label>
-                <select
-                  {...register('course_id', { valueAsNumber: true })}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
+              <Input
+                label="Student Full Name"
+                isRequired
+                placeholder="e.g. Ramesh Kumar / O'Connor / Jean-Luc"
+                {...register('full_name')}
+                error={errors.full_name?.message}
+              />
+
+              <Input
+                label="APAAR ID (12 Digits, optional)"
+                type="text"
+                inputMode="numeric"
+                maxLength={12}
+                placeholder="e.g. 012345678901 (leading zero preserved)"
+                helperText="Stored as string to preserve leading zeros."
+                {...register('apaar_id', {
+                  onChange: (e) => {
+                    e.target.value = sanitizeDigitsOnly(e.target.value, 12);
+                  }
+                })}
+                error={errors.apaar_id?.message}
+              />
+
+              <Select
+                label="Course"
+                isRequired
+                {...register('course_id', { valueAsNumber: true })}
+                error={errors.course_id?.message}
+              >
+                {courses.map(c => (
+                  <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                ))}
+              </Select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Date of Birth"
+                  type="date"
+                  {...register('date_of_birth')}
+                  error={errors.date_of_birth?.message}
+                />
+
+                <Select
+                  label="Gender"
+                  {...register('gender')}
+                  error={errors.gender?.message}
                 >
-                  {courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                  ))}
-                </select>
-                {errors.course_id && <p className="text-xs text-rose-600 mt-1">{errors.course_id.message}</p>}
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
-                  <input
-                    type="date"
-                    {...register('date_of_birth')}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
-                  <select
-                    {...register('gender')}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-              </div>
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="student@institution.edu"
+                  {...register('email')}
+                  error={errors.email?.message}
+                />
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    {...register('email')}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  {errors.email && <p className="text-xs text-rose-600 mt-1">{errors.email.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    {...register('phone')}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
+                <Input
+                  label="Phone (Indian Mobile)"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="e.g. 9876543210"
+                  helperText="10 digits starting with 6, 7, 8, or 9"
+                  {...register('phone', {
+                    onChange: (e) => {
+                      e.target.value = sanitizeDigitsOnly(e.target.value, 10);
+                    }
+                  })}
+                  error={errors.phone?.message}
+                />
               </div>
 
               <div className="pt-4 border-t border-slate-200 flex justify-end space-x-3">
