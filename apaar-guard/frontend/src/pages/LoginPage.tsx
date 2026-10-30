@@ -29,6 +29,49 @@ interface DemoAccount {
   preset_password?: string;
 }
 
+const DEFAULT_DEMO_ACCOUNTS: DemoAccount[] = [
+  {
+    id: 1,
+    email: 'asha.admin@apex.edu',
+    name: 'Asha Sharma',
+    role: 'institution_admin',
+    role_label: 'Institution Admin',
+    institution_name: 'Apex Institute of Technology',
+    institution_code: 'AIT-DELHI',
+    preset_password: 'password123',
+  },
+  {
+    id: 2,
+    email: 'ravi.officer@apex.edu',
+    name: 'Ravi Verma',
+    role: 'verification_officer',
+    role_label: 'Verification Officer',
+    institution_name: 'Apex Institute of Technology',
+    institution_code: 'AIT-DELHI',
+    preset_password: 'password123',
+  },
+  {
+    id: 3,
+    email: 'rajesh.regulator@aicte.gov.in',
+    name: 'Dr. Rajesh Kumar',
+    role: 'regulator',
+    role_label: 'AICTE Regulator (National Oversight)',
+    institution_name: 'AICTE National Headquarters',
+    institution_code: 'AICTE-HQ',
+    preset_password: 'password123',
+  },
+  {
+    id: 4,
+    email: 'suresh.admin@bnce.edu',
+    name: 'Suresh Patel',
+    role: 'institution_admin',
+    role_label: 'Institution Admin (Peer)',
+    institution_name: 'Bharatiya National College of Eng.',
+    institution_code: 'BNCE-PUNE',
+    preset_password: 'password123',
+  },
+];
+
 export const LoginPage: React.FC = () => {
   const { login, user, loading } = useAuth();
   const { t, language, setLanguage } = useTranslation();
@@ -36,7 +79,7 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>([]);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>(DEFAULT_DEMO_ACCOUNTS);
 
   const {
     register,
@@ -57,8 +100,14 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     api.get<{ disclaimer: string; accounts: DemoAccount[] }>('/auth/demo-accounts')
-      .then(res => setDemoAccounts(res.accounts))
-      .catch(() => {});
+      .then(res => {
+        if (res.accounts && res.accounts.length > 0) {
+          setDemoAccounts(res.accounts);
+        }
+      })
+      .catch(() => {
+        // Retain DEFAULT_DEMO_ACCOUNTS on network delay or disabled discovery
+      });
   }, []);
 
   if (loading) {
@@ -261,11 +310,17 @@ export const LoginPage: React.FC = () => {
                     </div>
                   </div>
                   <span className={`px-2 py-0.5 rounded font-medium text-[10px] ${
-                    acc.role === 'institution_admin' 
+                    acc.role === 'regulator'
+                      ? 'bg-purple-100 text-purple-800'
+                      : acc.role === 'institution_admin' 
                       ? 'bg-blue-100 text-blue-800' 
                       : 'bg-emerald-100 text-emerald-800'
                   }`}>
-                    {acc.role === 'institution_admin' ? t('role_admin', acc.role_label) : t('role_officer', acc.role_label)}
+                    {acc.role === 'regulator'
+                      ? 'AICTE Regulator'
+                      : acc.role === 'institution_admin' 
+                      ? t('role_admin', acc.role_label) 
+                      : t('role_officer', acc.role_label)}
                   </span>
                 </button>
               ))}
