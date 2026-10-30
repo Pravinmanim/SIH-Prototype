@@ -71,7 +71,7 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# Include Routers
+# Include Routers with both /api prefix and root to support all client URL configurations
 from app.api.auth import router as auth_router
 from app.api.validation import router as validation_router
 from app.api.students import router as students_router
@@ -84,19 +84,26 @@ from app.api.audit import router as audit_router
 from app.api.institution import router as institution_router
 from app.api.notifications import router as notifications_router
 
-app.include_router(auth_router, prefix="/api")
-app.include_router(validation_router, prefix="/api")
-app.include_router(students_router, prefix="/api")
-app.include_router(import_router, prefix="/api")
-app.include_router(review_router, prefix="/api")
-app.include_router(dashboard_router, prefix="/api")
-app.include_router(intake_router, prefix="/api")
-app.include_router(reports_router, prefix="/api")
-app.include_router(audit_router, prefix="/api")
-app.include_router(institution_router, prefix="/api")
-app.include_router(notifications_router, prefix="/api")
+router_list = [
+    auth_router,
+    validation_router,
+    students_router,
+    import_router,
+    review_router,
+    dashboard_router,
+    intake_router,
+    reports_router,
+    audit_router,
+    institution_router,
+    notifications_router,
+]
+
+for r in router_list:
+    app.include_router(r, prefix="/api")
+    app.include_router(r)
 
 @app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",

@@ -7,3 +7,4 @@ apaar_id,roll_number,full_name,date_of_birth,gender,course_code,admission_year,e
 202610010097,2026-CSE-306,Ankit Tiwari,2005-11-04,Male,CSE,2026,ankit.t@apex.edu,98765INVALID,Invalid Phone Number Formatting
 202610010096,2026-INVALID-CODE,Ritu Nair,2005-04-20,Female,XYZ_UNKNOWN,2026,ritu.n@apex.edu,9876543107,Unknown Course Code
 202610010095,2026-CSE-308,Gaurav Malhotra,2005-08-14,Male,CSE,2026,gaurav.m_invalid_email,9876543108,Malformed Email Address
+
