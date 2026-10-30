@@ -20,9 +20,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     try {
-      const data = await api.get<User>('/auth/me');
+      const data = await api.get<User>('/auth/me', { useCache: false });
       setUser(data);
-    } catch {
+    } catch (err: any) {
+      // 401 is the standard, expected HTTP status for an unauthenticated user:
+      // Gracefully set the state to logged out without scary errors or redirect loops
+      if (err?.status === 401) {
+        try {
+          localStorage.removeItem('apaar_token');
+        } catch {
+          // Storage unavailable
+        }
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -51,6 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await api.post('/auth/logout');
+    } catch {
+      // Gracefully handle network disconnect during logout
     } finally {
       try {
         localStorage.removeItem('apaar_token');

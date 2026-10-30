@@ -42,15 +42,23 @@ def login(
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role, "inst": user.institution_id})
     
     # Set HttpOnly cookie for secure auth (supports cross-domain in prod with samesite none)
-    is_prod = settings.APP_ENV != "development"
+    is_https = (
+        request.url.scheme == "https" 
+        or request.headers.get("x-forwarded-proto") == "https"
+        or settings.APP_ENV != "development"
+    )
+    samesite_policy = "none" if is_https else "lax"
+    secure_flag = True if is_https else False
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        max_age=60 * 60 * 8,  # 8 hours
-        expires=60 * 60 * 8,
-        samesite="none" if is_prod else "lax",
-        secure=True if is_prod else False
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+        samesite=samesite_policy,
+        secure=secure_flag
     )
 
     record_audit_log(
@@ -76,11 +84,19 @@ def logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    is_prod = settings.APP_ENV != "development"
+    is_https = (
+        request.url.scheme == "https" 
+        or request.headers.get("x-forwarded-proto") == "https"
+        or settings.APP_ENV != "development"
+    )
+    samesite_policy = "none" if is_https else "lax"
+    secure_flag = True if is_https else False
+
     response.delete_cookie(
         key="access_token",
-        samesite="none" if is_prod else "lax",
-        secure=True if is_prod else False
+        path="/",
+        samesite=samesite_policy,
+        secure=secure_flag
     )
     record_audit_log(
         db=db,

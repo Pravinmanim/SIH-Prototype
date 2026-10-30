@@ -30,7 +30,7 @@ interface DemoAccount {
 }
 
 export const LoginPage: React.FC = () => {
-  const { login, user } = useAuth();
+  const { login, user, loading } = useAuth();
   const { t, language, setLanguage } = useTranslation();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -50,16 +50,24 @@ export const LoginPage: React.FC = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     api.get<{ disclaimer: string; accounts: DemoAccount[] }>('/auth/demo-accounts')
       .then(res => setDemoAccounts(res.accounts))
       .catch(() => {});
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F6F8FC] text-slate-500 font-sans text-sm">
+        Checking active session...
+      </div>
+    );
+  }
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);

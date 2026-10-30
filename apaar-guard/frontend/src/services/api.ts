@@ -35,9 +35,10 @@ function invalidateCache(endpointPrefix?: string) {
 
 async function request<T>(endpoint: string, options: RequestInit = {}, useCache = false): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
+  const isAuthEndpoint = endpoint.startsWith('/auth/') || endpoint.startsWith('auth/');
 
-  // Check GET cache
-  if (useCache && options.method === 'GET') {
+  // Check GET cache (never cache auth endpoints)
+  if (useCache && !isAuthEndpoint && options.method === 'GET') {
     const cached = getCache.get(url);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.data as T;
@@ -77,6 +78,16 @@ async function request<T>(endpoint: string, options: RequestInit = {}, useCache 
     } catch {
       // Non-JSON response
     }
+
+    // Automatically clear invalid/expired token on 401 (except when submitting credentials on login)
+    if (response.status === 401 && !endpoint.includes('/auth/login')) {
+      try {
+        localStorage.removeItem('apaar_token');
+      } catch {
+        // Ignore storage restrictions
+      }
+    }
+
     throw new ApiError(errorMessage, response.status, errorData);
   }
 
@@ -87,8 +98,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}, useCache 
 
   const data = await response.json();
 
-  // Cache successful GET responses
-  if (useCache && options.method === 'GET') {
+  // Cache successful GET responses (never cache auth endpoints)
+  if (useCache && !isAuthEndpoint && options.method === 'GET') {
     getCache.set(url, {
       data,
       expiresAt: Date.now() + CACHE_TTL_MS
