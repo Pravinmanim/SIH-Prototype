@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -113,6 +113,55 @@ export const DashboardLayout: React.FC = () => {
   const currentNav = allNav.find(item => item.path === location.pathname);
   const breadcrumb = currentNav ? currentNav.label : 'Overview';
 
+  // Floating Collapsed Sidebar Navigation Tooltip State & Handlers
+  const [activeTooltip, setActiveTooltip] = useState<{
+    id: string;
+    label: string;
+    top: number;
+  } | null>(null);
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showTooltip = (id: string, label: string, element: HTMLElement) => {
+    if (!collapsed) return;
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+    const rect = element.getBoundingClientRect();
+    setActiveTooltip({
+      id,
+      label,
+      top: rect.top + rect.height / 2,
+    });
+  };
+
+  const hideTooltip = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+    }
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setActiveTooltip(null);
+    }, 120);
+  };
+
+  const keepTooltip = () => {
+    if (tooltipTimeoutRef.current) {
+      clearTimeout(tooltipTimeoutRef.current);
+      tooltipTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    setActiveTooltip(null);
+    if (tooltipTimeoutRef.current) clearTimeout(tooltipTimeoutRef.current);
+  }, [collapsed, location.pathname]);
+
+  const displayTooltipLabel = activeTooltip
+    ? (allNav.find(x => x.path === activeTooltip.id)?.label || 
+       (activeTooltip.id === 'toggle_sidebar' ? 'Expand sidebar (Ctrl+B)' : 
+        activeTooltip.id === 'logout' ? t('signOut', 'Sign Out') : activeTooltip.label))
+    : '';
+
   return (
     <div className="h-screen flex flex-col bg-[#F6F8FC] text-[#172033] overflow-hidden">
       {/* Institutional Branding Masthead (Inspired by PAKSHYA) */}
@@ -130,18 +179,18 @@ export const DashboardLayout: React.FC = () => {
           {/* Sidebar Section 1: Top Navigation Controls */}
           <div className="h-14 px-4 flex items-center justify-between border-b border-white/10 shrink-0">
             {collapsed ? (
-              <div className="w-full flex items-center justify-center relative group">
+              <div className="w-full flex items-center justify-center relative">
                 <button
                   onClick={toggleSidebar}
-                  className="w-9 h-9 rounded-xl bg-white/5 hover:bg-blue-600 text-blue-300 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-                  title="Expand sidebar (Ctrl+B)"
-                  aria-label="Expand sidebar"
+                  onMouseEnter={(e) => showTooltip('toggle_sidebar', 'Expand sidebar (Ctrl+B)', e.currentTarget)}
+                  onMouseLeave={hideTooltip}
+                  onFocus={(e) => showTooltip('toggle_sidebar', 'Expand sidebar (Ctrl+B)', e.currentTarget)}
+                  onBlur={() => setActiveTooltip(null)}
+                  className="w-9 h-9 rounded-xl bg-white/5 hover:bg-blue-600 text-blue-300 hover:text-white flex items-center justify-center transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  aria-label="Expand sidebar (Ctrl+B)"
                 >
                   <PanelLeftOpen className="w-4 h-4" />
                 </button>
-                <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg whitespace-nowrap shadow-xl opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 z-50 border border-slate-700/60">
-                  Expand sidebar (Ctrl+B)
-                </div>
               </div>
             ) : (
               <>
@@ -150,7 +199,7 @@ export const DashboardLayout: React.FC = () => {
                 </span>
                 <button
                   onClick={toggleSidebar}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
                   title="Collapse sidebar (Ctrl+B)"
                   aria-label="Collapse sidebar"
                 >
@@ -161,7 +210,10 @@ export const DashboardLayout: React.FC = () => {
           </div>
 
           {/* Nav Items List */}
-          <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto overflow-x-hidden">
+          <nav 
+            onScroll={() => setActiveTooltip(null)}
+            className="flex-1 px-3 py-3 space-y-4 overflow-y-auto overflow-x-hidden"
+          >
             {/* Main Modules Group */}
             <div className="space-y-1">
               {!collapsed && (
@@ -172,13 +224,19 @@ export const DashboardLayout: React.FC = () => {
               {filteredMainNav.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.path} className="relative group">
+                  <div key={item.path} className="relative">
                     <NavLink
                       to={item.path}
+                      aria-label={item.label}
+                      aria-describedby={collapsed && activeTooltip?.id === item.path ? 'sidebar-nav-tooltip' : undefined}
+                      onMouseEnter={(e) => showTooltip(item.path, item.label, e.currentTarget)}
+                      onMouseLeave={hideTooltip}
+                      onFocus={(e) => showTooltip(item.path, item.label, e.currentTarget)}
+                      onBlur={() => setActiveTooltip(null)}
                       className={({ isActive }) =>
                         `flex items-center ${
                           collapsed ? 'justify-center px-0 w-11 h-10 mx-auto' : 'space-x-3 px-3 py-2'
-                        } rounded-xl text-xs font-medium transition-all ${
+                        } rounded-xl text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                           isActive
                             ? 'bg-blue-600 text-white shadow-sm font-semibold'
                             : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -188,12 +246,6 @@ export const DashboardLayout: React.FC = () => {
                       <Icon className="w-4 h-4 shrink-0" />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </NavLink>
-
-                    {collapsed && (
-                      <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg whitespace-nowrap shadow-xl opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 z-50 border border-slate-700/60">
-                        {item.label}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -209,13 +261,19 @@ export const DashboardLayout: React.FC = () => {
               {filteredAdditionalNav.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.path} className="relative group">
+                  <div key={item.path} className="relative">
                     <NavLink
                       to={item.path}
+                      aria-label={item.label}
+                      aria-describedby={collapsed && activeTooltip?.id === item.path ? 'sidebar-nav-tooltip' : undefined}
+                      onMouseEnter={(e) => showTooltip(item.path, item.label, e.currentTarget)}
+                      onMouseLeave={hideTooltip}
+                      onFocus={(e) => showTooltip(item.path, item.label, e.currentTarget)}
+                      onBlur={() => setActiveTooltip(null)}
                       className={({ isActive }) =>
                         `flex items-center ${
                           collapsed ? 'justify-center px-0 w-11 h-10 mx-auto' : 'space-x-3 px-3 py-2'
-                        } rounded-xl text-xs font-medium transition-all ${
+                        } rounded-xl text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                           isActive
                             ? 'bg-blue-600 text-white shadow-sm font-semibold'
                             : 'text-slate-300 hover:bg-white/10 hover:text-white'
@@ -225,12 +283,6 @@ export const DashboardLayout: React.FC = () => {
                       <Icon className="w-4 h-4 shrink-0" />
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </NavLink>
-
-                    {collapsed && (
-                      <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg whitespace-nowrap shadow-xl opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 z-50 border border-slate-700/60">
-                        {item.label}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -243,9 +295,12 @@ export const DashboardLayout: React.FC = () => {
               <div className="flex justify-center">
                 <button
                   onClick={handleLogout}
-                  className="w-10 h-10 rounded-xl text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center justify-center transition-colors cursor-pointer"
-                  title="Sign out"
-                  aria-label="Sign out"
+                  onMouseEnter={(e) => showTooltip('logout', t('signOut', 'Sign Out'), e.currentTarget)}
+                  onMouseLeave={hideTooltip}
+                  onFocus={(e) => showTooltip('logout', t('signOut', 'Sign Out'), e.currentTarget)}
+                  onBlur={() => setActiveTooltip(null)}
+                  className="w-10 h-10 rounded-xl text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+                  aria-label={t('signOut', 'Sign Out')}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -267,7 +322,7 @@ export const DashboardLayout: React.FC = () => {
                 </div>
                 <button
                   onClick={handleLogout}
-                  title="Sign out"
+                  title={t('signOut', 'Sign Out')}
                   className="text-slate-400 hover:text-rose-300 p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer shrink-0"
                 >
                   <LogOut className="w-4 h-4" />
@@ -276,6 +331,35 @@ export const DashboardLayout: React.FC = () => {
             )}
           </div>
         </aside>
+
+        {/* FLOATING COLLAPSED SIDEBAR NAVIGATION TOOLTIP */}
+        {collapsed && activeTooltip && (
+          <div
+            role="tooltip"
+            id="sidebar-nav-tooltip"
+            onMouseEnter={keepTooltip}
+            onMouseLeave={hideTooltip}
+            className="fixed z-[9999] pointer-events-auto flex items-center transition-all duration-150 ease-out animate-in fade-in zoom-in-95"
+            style={{
+              left: '84px',
+              top: `${activeTooltip.top}px`,
+              transform: 'translateY(-50%)',
+            }}
+          >
+            {/* Transparent hover bridge bridging the 8px gap between icon and tooltip */}
+            <div className="absolute right-full top-0 w-3 h-full cursor-default" />
+
+            {/* Tooltip Card */}
+            <div className="relative px-3 py-1.5 bg-[#142B4A] text-white text-xs font-semibold rounded-xl whitespace-nowrap shadow-2xl border border-blue-900/80 tracking-tight flex items-center gap-1.5 ring-1 ring-white/10 select-none">
+              {/* Arrow pointing left */}
+              <div 
+                className="absolute right-full top-1/2 -translate-y-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-[#142B4A]" 
+                aria-hidden="true" 
+              />
+              <span>{displayTooltipLabel}</span>
+            </div>
+          </div>
+        )}
 
         {/* MOBILE DRAWER */}
         {mobileMenuOpen && (

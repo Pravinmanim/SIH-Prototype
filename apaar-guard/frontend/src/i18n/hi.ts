@@ -41,6 +41,9 @@ export const hi: TranslationDictionary = {
   nav_rules: 'सत्यापन नियम',
   nav_help: 'सहायता और संसाधन',
   nav_settings: 'संस्थान सेटिंग्स',
+  nav_user_mgmt: 'उपयोगकर्ता प्रबंधन',
+  nav_review_cases: 'समीक्षा मामले',
+  nav_import_history: 'आयात इतिहास',
   nav_tools: 'अन्य उपकरण',
   nav_portal: 'पोर्टल',
   nav_main_modules: 'मुख्य मॉड्यूल',
@@ -308,3 +311,4 @@ export const hi: TranslationDictionary = {
   rules_tester_valid: 'वैध 12-अंकीय संख्यात्मक संरचना। (नोट: प्रारूप वैधता आधिकारिक सत्यापन नहीं है)।',
   rules_tester_invalid: 'अपार आईडी में ठीक 12 संख्यात्मक अंक होने चाहिए (कोई अक्षर या खाली स्थान नहीं)।',
 };
+
