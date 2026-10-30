@@ -310,4 +310,19 @@ export const en: TranslationDictionary = {
   rules_tester_btn: 'Validate Format',
   rules_tester_valid: 'Valid 12-digit numeric structure. (Note: Format validity does not constitute official UIDAI/DigiLocker verification).',
   rules_tester_invalid: 'APAAR ID must contain exactly 12 numeric digits (no letters, spaces, or special characters).',
+
+  // Footer
+  footer_rights: 'All Rights Reserved.',
+  footer_tagline: 'Accurate Student Records. Transparent Verification. Trusted Data.',
+  footer_privacy: 'Privacy & Data Protection',
+  footer_privacy_title: 'Institutional Privacy & Data Protection Policy',
+  footer_privacy_desc: 'APAAR GUARD enforces stringent institutional student data confidentiality standards under AICTE and NEP 2020 guidelines.',
+  footer_privacy_point1: 'Zero Raw Aadhaar Storage: Institutional records strictly use pseudonymized or 12-digit APAAR identifiers without raw biometric or national UID storage.',
+  footer_privacy_point2: 'Role-Based Access Control: Verification officers and administrators access student dossiers strictly within institutional tenancy bounds.',
+  footer_privacy_point3: 'Local Verification Only: Format and duplicate checks are executed within the institutional perimeter and do not substitute statutory DigiLocker/UIDAI verification.',
+  footer_close: 'Close',
+  footer_version: 'v2.4.0 (SIH 2026)',
+  footer_prototype_badge: 'SIH Prototype',
+  footer_boundary_title: 'Mandatory Verification Boundary & Regulatory Disclaimer',
+  footer_boundary_desc: 'Local validation assesses only 12-digit numeric structure and checks for duplicate roll numbers or identifiers across institutional records. It does not establish student identity, legal custody, or replace statutory DigiLocker/UIDAI verification mechanisms.',
 };
