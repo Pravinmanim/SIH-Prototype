@@ -16,14 +16,20 @@ import {
   AlertTriangle, 
   XCircle, 
   ShieldAlert,
-  Info
+  Info,
+  CreditCard,
+  ShieldCheck,
+  History,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../i18n/LanguageContext';
 import { api } from '../services/api';
-import type { StudentListItem, StudentDetail, Course, PaginatedStudents, StudentRevealResponse } from '../types';
+import type { StudentListItem, StudentDetail, Course, PaginatedStudents, StudentRevealResponse, StudentConsent } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Input, Select, Card } from '../components/ui';
+import { StudentIDCardModal } from '../components/students/StudentIDCardModal';
 import {
   studentNameSchema,
   indianPhoneSchema,
@@ -80,6 +86,15 @@ export const StudentsPage: React.FC = () => {
   const [revealedApaar, setRevealedApaar] = useState<string | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealWarning, setRevealWarning] = useState<string | null>(null);
+  const [cardStudent, setCardStudent] = useState<StudentDetail | null>(null);
+  
+  // Phase 6: Student Consent Drawer State
+  const [studentConsent, setStudentConsent] = useState<StudentConsent | null>(null);
+  const [consentLoading, setConsentLoading] = useState<boolean>(false);
+  const [consentActionNotes, setConsentActionNotes] = useState<string>('');
+  const [consentSubmitting, setConsentSubmitting] = useState<boolean>(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
+  const [showConsentHistory, setShowConsentHistory] = useState<boolean>(false);
   
   // Feedback toasts/alerts
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -141,12 +156,49 @@ export const StudentsPage: React.FC = () => {
   };
 
   // View Details Drawer
+  const fetchStudentConsent = useCallback(async (studentId: number) => {
+    setConsentLoading(true);
+    setConsentError(null);
+    try {
+      const res = await api.get<StudentConsent>(`/students/${studentId}/consent`);
+      setStudentConsent(res);
+    } catch (err: any) {
+      setConsentError(err.message || 'Unable to fetch consent records.');
+    } finally {
+      setConsentLoading(false);
+    }
+  }, []);
+
+  const handleUpdateConsent = async (newStatus: 'granted' | 'withdrawn') => {
+    if (!selectedStudentDetail) return;
+    setConsentSubmitting(true);
+    setConsentError(null);
+    try {
+      const res = await api.post<StudentConsent>(`/students/${selectedStudentDetail.id}/consent`, {
+        status: newStatus,
+        notice_version: 'v1.0',
+        notes: consentActionNotes.trim() || undefined
+      });
+      setStudentConsent(res);
+      setConsentActionNotes('');
+    } catch (err: any) {
+      setConsentError(err.message || 'Unable to record consent status change.');
+    } finally {
+      setConsentSubmitting(false);
+    }
+  };
+
   const handleViewDetail = async (student: StudentListItem) => {
     setRevealedApaar(null);
     setRevealWarning(null);
+    setStudentConsent(null);
+    setConsentActionNotes('');
+    setConsentError(null);
+    setShowConsentHistory(false);
     try {
       const detail = await api.get<StudentDetail>(`/students/${student.id}`);
       setSelectedStudentDetail(detail);
+      fetchStudentConsent(student.id);
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message || 'Could not load student details.' });
     }
@@ -162,6 +214,15 @@ export const StudentsPage: React.FC = () => {
       setFeedback({ type: 'error', message: err.message || 'Failed to reveal confidential APAAR ID.' });
     } finally {
       setIsRevealing(false);
+    }
+  };
+
+  const handleOpenIdCard = async (studentId: number) => {
+    try {
+      const detail = await api.get<StudentDetail>(`/students/${studentId}`);
+      setCardStudent(detail);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Could not load student ID card data.' });
     }
   };
 
@@ -410,9 +471,16 @@ export const StudentsPage: React.FC = () => {
                       <button
                         onClick={() => handleViewDetail(student)}
                         className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        title="View Validation Details"
+                        title={t('tooltip_view_detail', 'View Validation Details')}
                       >
                         <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenIdCard(student.id)}
+                        className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                        title={t('btn_view_id_card', 'Student ID & APAAR Card')}
+                      >
+                        <CreditCard className="w-4 h-4" />
                       </button>
 
                       {isAdmin && (
@@ -493,9 +561,20 @@ export const StudentsPage: React.FC = () => {
                   {t('col_roll_number', 'Roll Number')}: {selectedStudentDetail.roll_number} • {t('col_year', 'Year')}: {selectedStudentDetail.admission_year}
                 </p>
               </div>
-              <button onClick={() => setSelectedStudentDetail(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setCardStudent(selectedStudentDetail)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold border border-blue-200 transition cursor-pointer"
+                  title="Preview & print Student ID Card"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>{t('btn_id_card', 'Student ID Card')}</span>
+                </button>
+                <button onClick={() => setSelectedStudentDetail(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Official Verification Boundary Banner */}
@@ -606,11 +685,184 @@ export const StudentsPage: React.FC = () => {
                   })}
                 </div>
               </div>
+
+              {/* Student Consent & Privacy Controls (Phase 6) */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 m-0">
+                      Student Consent & Privacy Control (Workflow Record)
+                    </h3>
+                  </div>
+                  {studentConsent && (
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                      studentConsent.status === 'granted' 
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : studentConsent.status === 'withdrawn'
+                        ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}>
+                      {studentConsent.status === 'granted' ? 'Consent Granted' : studentConsent.status === 'withdrawn' ? 'Consent Withdrawn' : 'Not Recorded'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Disclaimer Banner */}
+                <div className="text-[11px] bg-blue-50/70 border border-blue-200 text-blue-900 rounded-lg p-2.5 flex items-start space-x-2">
+                  <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold m-0">Staff-Recorded Workflow Status Only</p>
+                    <p className="text-blue-800 mt-0.5 m-0 leading-tight">
+                      Consent records in this prototype are workflow records documented by authorized institutional staff. They do not independently prove legal compliance or direct student signature.
+                    </p>
+                  </div>
+                </div>
+
+                {consentLoading ? (
+                  <div className="text-xs text-slate-500 py-2">Loading consent status...</div>
+                ) : studentConsent ? (
+                  <div className="space-y-3 text-xs">
+                    <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-lg border border-slate-200">
+                      <div>
+                        <span className="text-slate-500 block text-[11px]">Notice / Purpose Version:</span>
+                        <span className="font-medium text-slate-800">{studentConsent.notice_version}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[11px]">Latest Action Timestamp:</span>
+                        <span className="font-medium text-slate-800">
+                          {studentConsent.recorded_at ? new Date(studentConsent.recorded_at).toLocaleString() : 'Not yet recorded'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[11px]">Recorded By Staff:</span>
+                        <span className="font-medium text-slate-800">
+                          {studentConsent.recorded_by_name ? `${studentConsent.recorded_by_name} (${studentConsent.recorded_by_role})` : 'Not recorded'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[11px]">Workflow Type:</span>
+                        <span className="font-medium text-slate-800">Institutional Staff Entry</span>
+                      </div>
+                      {studentConsent.notes && (
+                        <div className="col-span-2 pt-1 border-t border-slate-100">
+                          <span className="text-slate-500 block text-[11px]">Recorded Notes / Reason:</span>
+                          <span className="text-slate-700 italic">{studentConsent.notes}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Controlled Action to Record / Update Consent */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                      <label className="block text-[11px] font-semibold text-slate-700">
+                        Record / Change Consent Decision:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Optional safe reason notes (max 500 chars)"
+                        value={consentActionNotes}
+                        onChange={(e) => setConsentActionNotes(e.target.value.slice(0, 500))}
+                        maxLength={500}
+                        className="w-full text-xs px-2.5 py-1.5 border border-slate-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        disabled={consentSubmitting}
+                      />
+                      {consentError && (
+                        <p className="text-[11px] text-rose-600 font-medium m-0">{consentError}</p>
+                      )}
+                      <div className="flex items-center space-x-2 pt-1">
+                        {studentConsent.status !== 'granted' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateConsent('granted')}
+                            disabled={consentSubmitting}
+                            className="inline-flex items-center space-x-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Record Granted</span>
+                          </button>
+                        )}
+                        {studentConsent.status === 'granted' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateConsent('withdrawn')}
+                            disabled={consentSubmitting}
+                            className="inline-flex items-center space-x-1 px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
+                          >
+                            <UserX className="w-3.5 h-3.5" />
+                            <span>Record Withdrawal</span>
+                          </button>
+                        )}
+                        {studentConsent.status === 'withdrawn' && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateConsent('granted')}
+                            disabled={consentSubmitting}
+                            className="inline-flex items-center space-x-1 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                            <span>Re-affirm Consent</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* History Timeline Toggle */}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowConsentHistory(!showConsentHistory)}
+                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-slate-600 hover:text-slate-900 transition"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        <span>{showConsentHistory ? 'Hide Consent Audit History' : `View Consent Audit History (${studentConsent.history.length})`}</span>
+                      </button>
+
+                      {showConsentHistory && (
+                        <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                          {studentConsent.history.length === 0 ? (
+                            <p className="text-[11px] text-slate-500 italic p-2 bg-white rounded border border-slate-200">
+                              No previous consent history events recorded.
+                            </p>
+                          ) : (
+                            studentConsent.history.map((ev) => (
+                              <div key={ev.id} className="p-2 bg-white rounded border border-slate-200 text-[11px]">
+                                <div className="flex items-center justify-between font-medium">
+                                  <span className="text-slate-800">
+                                    {ev.action} ({ev.previous_status} → {ev.new_status})
+                                  </span>
+                                  <span className="text-slate-400 font-mono text-[10px]">
+                                    {new Date(ev.timestamp).toLocaleString()}
+                                  </span>
+                                </div>
+                                <div className="text-slate-500 mt-0.5">
+                                  Recorded by: {ev.actor_name || 'Staff'} ({ev.actor_role || 'Staff'}) • Notice: {ev.notice_version}
+                                </div>
+                                {ev.notes && (
+                                  <div className="text-slate-600 italic mt-0.5">Notes: {ev.notes}</div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
               <button
+                type="button"
+                onClick={() => setCardStudent(selectedStudentDetail)}
+                className="inline-flex items-center space-x-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>{t('btn_print_id_card', 'Print Student ID Card')}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSelectedStudentDetail(null)}
                 className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium hover:bg-slate-300 cursor-pointer"
               >
@@ -784,6 +1036,17 @@ export const StudentsPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* STUDENT ID & APAAR CARD MODAL */}
+      {cardStudent && (
+        <StudentIDCardModal
+          student={cardStudent}
+          onClose={() => setCardStudent(null)}
+          revealedApaar={revealedApaar}
+          onRevealApaar={handleRevealApaar}
+          isRevealing={isRevealing}
+        />
       )}
     </div>
   );

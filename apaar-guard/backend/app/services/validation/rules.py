@@ -170,6 +170,53 @@ class ExactDuplicateApaarRule(BaseValidationRule):
                 rule_version=self.rule_version
             )]
 
+        # Check for cross-institution collision if valid 12-digit format
+        cross_collision_found = False
+        if len(normalized) == 12 and normalized.isdigit():
+            db = context.get("db")
+            current_inst = student.institution_id if hasattr(student, "institution_id") else student.get("institution_id")
+            if db and current_inst:
+                from sqlalchemy import func
+                from app.models.student import Student
+                q = db.query(Student).filter(
+                    Student.institution_id != current_inst,
+                    Student.is_archived == False,
+                    (
+                        (Student.apaar_id == normalized) |
+                        (func.replace(func.replace(Student.apaar_id, "-", ""), " ", "") == normalized)
+                    )
+                )
+                if current_id:
+                    q = q.filter(Student.id != current_id)
+                if q.first():
+                    cross_collision_found = True
+
+            cross_students = context.get("cross_institution_students", [])
+            for cs in cross_students:
+                cs_id = cs.id if hasattr(cs, "id") else cs.get("id")
+                if current_id and cs_id == current_id:
+                    continue
+                cs_inst = cs.institution_id if hasattr(cs, "institution_id") else cs.get("institution_id")
+                cs_archived = cs.is_archived if hasattr(cs, "is_archived") else cs.get("is_archived", False)
+                if cs_archived or (current_inst and cs_inst == current_inst):
+                    continue
+                cs_apaar = cs.apaar_id if hasattr(cs, "apaar_id") else cs.get("apaar_id")
+                if normalize_apaar(cs_apaar) == normalized:
+                    cross_collision_found = True
+                    break
+
+        if cross_collision_found:
+            return [ValidationResultDTO(
+                rule_id=self.rule_id,
+                rule_name=self.name,
+                severity="warning",
+                status="failed",
+                message="Potential cross-institution APAAR collision detected with another registered institution.",
+                affected_field="apaar_id",
+                suggested_action="Review case in Verification Centre. Verify student's original physical identity documents locally. (Note: Collision alert is not proof of fraud).",
+                rule_version=self.rule_version
+            )]
+
         return [ValidationResultDTO(
             rule_id=self.rule_id,
             rule_name=self.name,

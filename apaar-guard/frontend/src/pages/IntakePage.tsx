@@ -13,7 +13,10 @@ import {
   Eye,
   BookOpen,
   Copy,
-  Check
+  Check,
+  Layers,
+  Globe2,
+  AlertTriangle
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -32,6 +35,8 @@ export const IntakePage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [newIntake, setNewIntake] = useState<string>('60');
   const [intakeError, setIntakeError] = useState<string | null>(null);
+  const [newSupernumerary, setNewSupernumerary] = useState<string>('0');
+  const [supernumeraryError, setSupernumeraryError] = useState<string | null>(null);
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -66,7 +71,7 @@ export const IntakePage: React.FC = () => {
   }, [selectedYear, searchTerm, statusFilter, pageSize]);
 
   const handleCopyCourseSummary = (item: any) => {
-    const text = `Course: ${item.course_name} (${item.course_code})\nAcademic Year: ${selectedYear}\nApproved Intake: ${item.approved_intake || 'Not Configured'}\nEnrolled: ${item.current_count}\nRemaining: ${item.remaining_capacity}\nUtilization: ${item.utilization_percent}%\nStatus: ${item.status}`;
+    const text = `Course: ${item.course_name} (${item.course_code})\nAcademic Year: ${selectedYear}\nApproved Intake: ${item.approved_intake || 'Not Configured'}\nSupernumerary Quota: ${item.supernumerary_intake || 0}\nRegular Enrolled: ${item.enrolled_regular ?? item.current_count}\nSupernumerary Enrolled: ${item.enrolled_supernumerary || 0}\nTotal Enrolled: ${item.current_count}\nRemaining Regular: ${item.remaining_capacity}\nUtilization: ${item.utilization_percent}%\nStatus: ${item.status}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -75,7 +80,9 @@ export const IntakePage: React.FC = () => {
   const openEditModal = (item: any) => {
     setEditingItem(item);
     setNewIntake(String(item.approved_intake || 60));
+    setNewSupernumerary(String(item.supernumerary_intake ?? 0));
     setIntakeError(null);
+    setSupernumeraryError(null);
     setEditNotes(item.notes || '');
     setErrorMsg(null);
   };
@@ -84,7 +91,7 @@ export const IntakePage: React.FC = () => {
     e.preventDefault();
     if (!editingItem) return;
 
-    // Validate whole positive integer >= 1
+    // Validate whole positive integer >= 1 for regular intake
     const rawStr = String(newIntake).trim();
     if (!rawStr || !/^\d+$/.test(rawStr)) {
       setIntakeError('Enter a valid whole-number intake capacity.');
@@ -100,14 +107,32 @@ export const IntakePage: React.FC = () => {
       return;
     }
 
+    // Validate whole non-negative integer >= 0 for supernumerary
+    const rawSuper = String(newSupernumerary).trim();
+    if (!rawSuper || !/^\d+$/.test(rawSuper)) {
+      setSupernumeraryError('Enter a valid non-negative whole number (0 or more).');
+      return;
+    }
+    const parsedSuper = Number(rawSuper);
+    if (!Number.isInteger(parsedSuper) || parsedSuper < 0) {
+      setSupernumeraryError('Enter a valid non-negative whole number (0 or more).');
+      return;
+    }
+    if (parsedSuper > 500) {
+      setSupernumeraryError('Supernumerary seats cannot exceed 500 seats.');
+      return;
+    }
+
     setSaving(true);
     setErrorMsg(null);
     setIntakeError(null);
+    setSupernumeraryError(null);
     try {
       const res = await api.post<any>('/intake', {
         course_id: editingItem.course_id,
         academic_year: selectedYear,
         approved_intake: parsedNum,
+        supernumerary_intake: parsedSuper,
         notes: editNotes
       });
       setSuccessMsg(res.message);
@@ -192,32 +217,80 @@ export const IntakePage: React.FC = () => {
 
       {/* Summary Utilization Cards */}
       {intakeData && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <MetricCard
-            title={t('kpi_approved_quota', 'Total Approved Intake')}
-            value={intakeData.total_approved_intake}
-            subtitle={t('kpi_intake_sub', 'Sum of configured course seats')}
-            icon={BarChart3}
-            colorVariant="blue"
-          />
-          <MetricCard
-            title={t('kpi_active_enrollment', 'Active Enrolled Students')}
-            value={intakeData.total_enrolled_students}
-            subtitle={`Non-archived records in ${selectedYear}`}
-            icon={Users}
-            colorVariant="blue"
-          />
-          <MetricCard
-            title={t('kpi_capacity_used', 'Overall Seat Utilization')}
-            value={`${intakeData.overall_utilization}%`}
-            subtitle={t('chart_aicte_tag', 'AICTE intake capacity metric')}
-            icon={TrendingUp}
-            colorVariant={
-              intakeData.overall_utilization > 100 ? 'rose' :
-              intakeData.overall_utilization >= 90 ? 'amber' : 'emerald'
-            }
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title={t('kpi_approved_quota', 'Approved Regular Intake')}
+              value={intakeData.total_approved_intake}
+              subtitle={t('kpi_intake_sub', 'Sum of regular course seats')}
+              icon={BarChart3}
+              colorVariant="blue"
+            />
+            <MetricCard
+              title="Regular Enrolled"
+              value={intakeData.total_regular_enrolled ?? intakeData.total_enrolled_students}
+              subtitle={`Non-supernumerary (${selectedYear})`}
+              icon={Users}
+              colorVariant="blue"
+            />
+            <MetricCard
+              title="Supernumerary Seats"
+              value={`${intakeData.total_supernumerary_enrolled || 0} / ${intakeData.total_supernumerary_intake || 0}`}
+              subtitle="Enrolled / Quota capacity"
+              icon={Layers}
+              colorVariant="amber"
+            />
+            <MetricCard
+              title={t('kpi_capacity_used', 'Regular Seat Utilization')}
+              value={`${intakeData.overall_utilization}%`}
+              subtitle={t('chart_aicte_tag', 'Regular capacity metric')}
+              icon={TrendingUp}
+              colorVariant={
+                intakeData.overall_utilization > 100 ? 'rose' :
+                intakeData.overall_utilization >= 90 ? 'amber' : 'emerald'
+              }
+            />
+          </div>
+
+          {/* Admission Category Distribution Banner */}
+          <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs bg-gradient-to-r from-slate-50 via-white to-blue-50/30">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block flex items-center gap-1.5">
+                  <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+                  Admission Category Breakdown ({selectedYear})
+                </span>
+                <span className="text-[11px] text-slate-500">
+                  Categorized enrolment across all {allItems.length} courses (independent of supernumerary status)
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  General: <span className="font-mono font-bold">{intakeData.category_totals?.General || 0}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  NRI: <span className="font-mono font-bold">{intakeData.category_totals?.NRI || 0}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                  OCI: <span className="font-mono font-bold">{intakeData.category_totals?.OCI || 0}</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  Foreign National (FN): <span className="font-mono font-bold">{intakeData.category_totals?.['Foreign National'] || 0}</span>
+                </span>
+                {Boolean(intakeData.category_totals?.Other) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200 text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                    Other: <span className="font-mono font-bold">{intakeData.category_totals?.Other || 0}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </Card>
+        </>
       )}
 
       {/* Search and Status Filters */}
@@ -270,25 +343,27 @@ export const IntakePage: React.FC = () => {
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">{t('col_course', 'Course')}</th>
-                <th className="px-5 py-3.5 font-semibold">{t('col_quota', 'Approved Intake')}</th>
-                <th className="px-5 py-3.5 font-semibold">{t('col_enrolled', 'Enrolled')}</th>
-                <th className="px-5 py-3.5 font-semibold">{t('col_remaining', 'Remaining')}</th>
-                <th className="px-5 py-3.5 font-semibold">{t('col_utilization', 'Utilization')}</th>
-                <th className="px-5 py-3.5 font-semibold">{t('col_status', 'Status')}</th>
-                <th className="px-5 py-3.5 font-semibold text-right">{t('col_actions', 'Action')}</th>
+                <th className="px-4 py-3.5 font-semibold">{t('col_course', 'Course')}</th>
+                <th className="px-4 py-3.5 font-semibold">Approved Regular</th>
+                <th className="px-4 py-3.5 font-semibold">Regular Enrolled</th>
+                <th className="px-4 py-3.5 font-semibold">Supernumerary (Enr / Quota)</th>
+                <th className="px-4 py-3.5 font-semibold">Categories</th>
+                <th className="px-4 py-3.5 font-semibold">Remaining Regular</th>
+                <th className="px-4 py-3.5 font-semibold">{t('col_utilization', 'Utilization')}</th>
+                <th className="px-4 py-3.5 font-semibold">{t('col_status', 'Status')}</th>
+                <th className="px-4 py-3.5 font-semibold text-right">{t('col_actions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/80">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-xs">
+                  <td colSpan={9} className="px-5 py-12 text-center text-slate-400 text-xs">
                     {t('loading', 'Loading intake capacity records...')}
                   </td>
                 </tr>
               ) : filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500 text-xs">
+                  <td colSpan={9} className="px-5 py-12 text-center text-slate-500 text-xs">
                     {t('empty', 'No intake records found matching your filters.')}
                   </td>
                 </tr>
@@ -299,17 +374,41 @@ export const IntakePage: React.FC = () => {
                     onClick={() => setExaminingItem(item)}
                     className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
                   >
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{item.course_name}</div>
                       <div className="text-xs text-slate-400 font-mono">{item.course_code}</div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-800">
+                    <td className="px-4 py-3.5 font-mono text-sm font-semibold text-slate-800">
                       {item.has_config ? item.approved_intake : <span className="text-slate-400 italic">Not Set</span>}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-sm text-slate-700">
-                      {item.current_count}
+                    <td className="px-4 py-3.5 font-mono text-sm text-slate-700">
+                      {item.enrolled_regular ?? item.current_count}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-sm">
+                    <td className="px-4 py-3.5 font-mono text-xs">
+                      <span className="font-semibold text-slate-800">{item.enrolled_supernumerary || 0}</span>
+                      <span className="text-slate-400"> / </span>
+                      <span className="text-slate-600">{item.supernumerary_intake || 0}</span>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex flex-wrap gap-1 text-[11px] max-w-[160px]">
+                        {item.categories?.NRI > 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium">NRI: {item.categories.NRI}</span>
+                        )}
+                        {item.categories?.OCI > 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200 font-medium">OCI: {item.categories.OCI}</span>
+                        )}
+                        {item.categories?.['Foreign National'] > 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-medium">FN: {item.categories['Foreign National']}</span>
+                        )}
+                        {item.categories?.Other > 0 && (
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">Oth: {item.categories.Other}</span>
+                        )}
+                        {(!item.categories || (!item.categories.NRI && !item.categories.OCI && !item.categories['Foreign National'] && !item.categories.Other)) && (
+                          <span className="text-slate-400 text-xs font-mono">General</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-sm">
                       {!item.has_config ? (
                         <span className="text-slate-400">—</span>
                       ) : item.remaining_capacity < 0 ? (
@@ -318,7 +417,7 @@ export const IntakePage: React.FC = () => {
                         <span className="text-emerald-700 font-semibold">{item.remaining_capacity} available</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-xs">
+                    <td className="px-4 py-3.5 font-mono text-xs">
                       {item.has_config ? (
                         <div className="flex items-center space-x-2">
                           <div className="w-16 bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -334,15 +433,21 @@ export const IntakePage: React.FC = () => {
                         </div>
                       ) : '—'}
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       <StatusBadge status={item.status} size="sm" />
+                      {item.warning && (
+                        <p className="text-[11px] text-rose-700 mt-1 font-medium leading-tight max-w-[200px] flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 flex-shrink-0 text-rose-600 inline" />
+                          <span>{item.warning}</span>
+                        </p>
+                      )}
                       {(!item.has_config || item.approved_intake <= 0) && (
                         <p className="text-[11px] text-amber-700 mt-1 font-medium leading-tight max-w-[200px]">
                           Intake configuration is missing. Configure the capacity to calculate utilization.
                         </p>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end space-x-1.5">
                         <button
                           onClick={() => setExaminingItem(item)}
@@ -439,7 +544,7 @@ export const IntakePage: React.FC = () => {
             <form onSubmit={handleSaveIntake} className="space-y-4" noValidate>
               <div>
                 <label htmlFor="intake-approved" className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t('lbl_approved_seats', 'Approved Annual Intake (Number of Seats)')}
+                  {t('lbl_approved_seats', 'Approved Regular Intake (Number of Seats)')}
                   <span className="text-rose-500 ml-0.5 font-bold" aria-hidden="true">*</span>
                   <span className="sr-only"> ({t('required', 'required')})</span>
                 </label>
@@ -467,6 +572,41 @@ export const IntakePage: React.FC = () => {
                 {intakeError && (
                   <p id="intake-approved-error" role="alert" className="mt-1 text-xs text-rose-600 font-medium">
                     {intakeError}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="intake-supernumerary" className="block text-xs font-semibold text-slate-700 mb-1">
+                  Supernumerary Quota Capacity (Seats over & above regular)
+                </label>
+                <input
+                  id="intake-supernumerary"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={500}
+                  step={1}
+                  aria-invalid={!!supernumeraryError}
+                  aria-describedby={supernumeraryError ? 'intake-super-error' : undefined}
+                  value={newSupernumerary}
+                  onChange={(e) => {
+                    setNewSupernumerary(e.target.value);
+                    if (supernumeraryError) setSupernumeraryError(null);
+                  }}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-2 transition ${
+                    supernumeraryError
+                      ? 'border-rose-400 text-rose-900 focus:border-rose-500 focus:ring-rose-200'
+                      : 'border-slate-300 focus:ring-blue-600'
+                  }`}
+                />
+                {supernumeraryError ? (
+                  <p id="intake-super-error" role="alert" className="mt-1 text-xs text-rose-600 font-medium">
+                    {supernumeraryError}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Allocated seats for eligible supernumerary admissions (e.g. TFW, PMSSS, approved FN/NRI quotas).
                   </p>
                 )}
               </div>
@@ -532,17 +672,23 @@ export const IntakePage: React.FC = () => {
             </div>
 
             {/* Capacity KPI Grid */}
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <span className="text-[11px] text-slate-500 block">Approved Intake</span>
+                <span className="text-[11px] text-slate-500 block">Approved Regular</span>
                 <span className="font-mono text-base font-bold text-slate-900">
                   {examiningItem.has_config ? examiningItem.approved_intake : 'Not Set'}
                 </span>
               </div>
               <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <span className="text-[11px] text-blue-700 block">Enrolled Count</span>
+                <span className="text-[11px] text-blue-700 block">Regular Enrolled</span>
                 <span className="font-mono text-base font-bold text-blue-900">
-                  {examiningItem.current_count}
+                  {examiningItem.enrolled_regular ?? examiningItem.current_count}
+                </span>
+              </div>
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80">
+                <span className="text-[11px] text-amber-800 block">Supernumerary (Enr/Quota)</span>
+                <span className="font-mono text-base font-bold text-amber-900">
+                  {examiningItem.enrolled_supernumerary || 0} / {examiningItem.supernumerary_intake || 0}
                 </span>
               </div>
               <div className={`p-3 rounded-xl border ${
@@ -550,7 +696,7 @@ export const IntakePage: React.FC = () => {
                   ? 'bg-rose-50 border-rose-200 text-rose-900' 
                   : 'bg-emerald-50 border-emerald-200 text-emerald-900'
               }`}>
-                <span className="text-[11px] block opacity-80">Remaining Seats</span>
+                <span className="text-[11px] block opacity-80">Remaining Regular</span>
                 <span className="font-mono text-base font-bold">
                   {examiningItem.has_config 
                     ? (examiningItem.remaining_capacity < 0 ? `Over by ${Math.abs(examiningItem.remaining_capacity)}` : examiningItem.remaining_capacity) 
@@ -559,10 +705,59 @@ export const IntakePage: React.FC = () => {
               </div>
             </div>
 
+            {/* Admission Category Breakdown */}
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Globe2 className="w-3.5 h-3.5 text-blue-600" />
+                  Course Admission Categories
+                </span>
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Total Students: {examiningItem.current_count}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block">General</span>
+                  <span className="font-mono font-bold text-slate-800">{examiningItem.categories?.General || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block">NRI</span>
+                  <span className="font-mono font-bold text-emerald-700">{examiningItem.categories?.NRI || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block">OCI</span>
+                  <span className="font-mono font-bold text-purple-700">{examiningItem.categories?.OCI || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block">Foreign National</span>
+                  <span className="font-mono font-bold text-amber-700">{examiningItem.categories?.['Foreign National'] || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-lg border border-slate-200">
+                  <span className="text-[10px] text-slate-500 block">Other</span>
+                  <span className="font-mono font-bold text-slate-700">{examiningItem.categories?.Other || 0}</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 m-0 italic">
+                Note: Admission categories identify student demographic background. Supernumerary seat allocation is tracked separately.
+              </p>
+            </div>
+
+            {/* Over-Capacity Warning Banner if applicable */}
+            {examiningItem.warning && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-900 text-xs flex items-start space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Capacity Warning</span>
+                  <span>{examiningItem.warning}</span>
+                </div>
+              </div>
+            )}
+
             {/* Utilization Gauge */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700">Intake Capacity Utilization</span>
+                <span className="font-semibold text-slate-700">Regular Intake Capacity Utilization</span>
                 <span className="font-mono font-bold text-slate-900">
                   {examiningItem.has_config ? `${examiningItem.utilization_percent}%` : 'Configuration Missing'}
                 </span>
@@ -578,10 +773,10 @@ export const IntakePage: React.FC = () => {
               </div>
               <p className="text-[11px] text-slate-500 m-0">
                 {examiningItem.utilization_percent > 100
-                  ? 'CRITICAL ALERT: Enrolled students exceed authorized AICTE capacity.'
+                  ? 'CRITICAL ALERT: Regular enrolled students exceed authorized regular AICTE capacity.'
                   : examiningItem.utilization_percent >= 90
-                  ? 'WARNING: Course capacity is above 90% utilization threshold.'
-                  : 'Normal institutional enrollment level within authorized ceiling.'}
+                  ? 'WARNING: Regular course capacity is above 90% utilization threshold.'
+                  : 'Normal institutional regular enrollment level within authorized ceiling.'}
               </p>
             </div>
 

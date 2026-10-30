@@ -1,6 +1,7 @@
 import json
 from typing import List, Dict, Any, Tuple, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, timezone
 
 from app.models.student import Student
@@ -45,6 +46,7 @@ class ValidationEngine:
         valid_course_ids = {c.id for c in courses}
 
         return {
+            "db": db,
             "institution_id": institution_id,
             "existing_students": students,
             "valid_course_ids": valid_course_ids,
@@ -153,6 +155,52 @@ class ValidationEngine:
                     )
                 else:
                     seen_apaars[norm_apaar] = student
+
+                    # Check for potential cross-institution duplicate collision
+                    if len(norm_apaar) == 12 and norm_apaar.isdigit():
+                        cross_peer = db.query(Student).filter(
+                            Student.institution_id != institution_id,
+                            Student.is_archived == False,
+                            (
+                                (Student.apaar_id == norm_apaar) |
+                                (func.replace(func.replace(Student.apaar_id, "-", ""), " ", "") == norm_apaar)
+                            )
+                        )
+                        if student.id:
+                            cross_peer = cross_peer.filter(Student.id != student.id)
+                        cross_peer = cross_peer.first()
+
+                        if cross_peer:
+                            fp = compute_issue_fingerprint("R3_CROSS_INSTITUTION_APAAR", student.id, {"apaar_id": norm_apaar})
+                            current_run_fingerprints.add(fp)
+                            self._sync_review_case(
+                                db=db,
+                                institution_id=institution_id,
+                                student=student,
+                                peer=cross_peer,
+                                rule_id="R3_CROSS_INSTITUTION_APAAR",
+                                fingerprint=fp,
+                                alert_type="cross_institution_apaar",
+                                fields=["apaar_id"],
+                                reason="Potential cross-institution APAAR duplicate detected with another registered institution",
+                                severity="high"
+                            )
+                            # Also sync case in the other institution's queue so both institutions can review
+                            peer_fp = compute_issue_fingerprint("R3_CROSS_INSTITUTION_APAAR", cross_peer.id, {"apaar_id": norm_apaar})
+                            self._sync_review_case(
+                                db=db,
+                                institution_id=cross_peer.institution_id,
+                                student=cross_peer,
+                                peer=student,
+                                rule_id="R3_CROSS_INSTITUTION_APAAR",
+                                fingerprint=peer_fp,
+                                alert_type="cross_institution_apaar",
+                                fields=["apaar_id"],
+                                reason="Potential cross-institution APAAR duplicate detected with another registered institution",
+                                severity="high"
+                            )
+                            if cross_peer.status == "Ready":
+                                cross_peer.status = "Needs Review"
 
             # 2. Duplicate Roll Number (same inst + admission year)
             roll_key = (student.admission_year, student.roll_number.strip().lower())
@@ -308,6 +356,76 @@ class ValidationEngine:
         db.add(new_case)
         db.commit()
 
+    def sync_student_cross_institution_collision(self, db: Session, student: Student) -> Optional[Student]:
+        """
+        Checks if a valid, normalized APAAR ID exists in another institution.
+        If a collision is found:
+        - Syncs DuplicateAlert and ReviewCase for the student's institution.
+        - Syncs DuplicateAlert and ReviewCase for the peer's institution.
+        - Updates student status to 'Needs Review' if currently 'Ready'.
+        - Updates peer status to 'Needs Review' if currently 'Ready'.
+        - Returns the peer Student record.
+        """
+        if not student or student.is_archived or not student.apaar_id:
+            return None
+
+        norm_apaar = normalize_apaar(student.apaar_id)
+        if not norm_apaar or len(norm_apaar) != 12 or not norm_apaar.isdigit():
+            return None
+
+        cross_peer = db.query(Student).filter(
+            Student.institution_id != student.institution_id,
+            Student.is_archived == False,
+            (
+                (Student.apaar_id == norm_apaar) |
+                (func.replace(func.replace(Student.apaar_id, "-", ""), " ", "") == norm_apaar)
+            )
+        )
+        if student.id:
+            cross_peer = cross_peer.filter(Student.id != student.id)
+        cross_peer = cross_peer.first()
+
+        if not cross_peer:
+            return None
+
+        # 1. Sync review case for student in their institution
+        fp = compute_issue_fingerprint("R3_CROSS_INSTITUTION_APAAR", student.id, {"apaar_id": norm_apaar})
+        self._sync_review_case(
+            db=db,
+            institution_id=student.institution_id,
+            student=student,
+            peer=cross_peer,
+            rule_id="R3_CROSS_INSTITUTION_APAAR",
+            fingerprint=fp,
+            alert_type="cross_institution_apaar",
+            fields=["apaar_id"],
+            reason="Potential cross-institution APAAR duplicate detected with another registered institution",
+            severity="high"
+        )
+
+        # 2. Sync review case for peer in their institution
+        peer_fp = compute_issue_fingerprint("R3_CROSS_INSTITUTION_APAAR", cross_peer.id, {"apaar_id": norm_apaar})
+        self._sync_review_case(
+            db=db,
+            institution_id=cross_peer.institution_id,
+            student=cross_peer,
+            peer=student,
+            rule_id="R3_CROSS_INSTITUTION_APAAR",
+            fingerprint=peer_fp,
+            alert_type="cross_institution_apaar",
+            fields=["apaar_id"],
+            reason="Potential cross-institution APAAR duplicate detected with another registered institution",
+            severity="high"
+        )
+
+        if student.status == "Ready":
+            student.status = "Needs Review"
+        if cross_peer.status == "Ready":
+            cross_peer.status = "Needs Review"
+
+        db.commit()
+        return cross_peer
+
 # Aggregate-level intake evaluation (Section 4)
 def compute_aggregate_intake_alerts(db: Session, institution_id: int, academic_year: int = 2026) -> List[Dict[str, Any]]:
     courses = db.query(Course).filter(Course.institution_id == institution_id).all()
@@ -326,10 +444,30 @@ def compute_aggregate_intake_alerts(db: Session, institution_id: int, academic_y
         ).group_by(Student.course_id).all()
     )
 
+    regular_counts = dict(
+        db.query(Student.course_id, func.count(Student.id)).filter(
+            Student.institution_id == institution_id,
+            Student.admission_year == academic_year,
+            Student.is_archived == False,
+            Student.is_supernumerary == False
+        ).group_by(Student.course_id).all()
+    )
+
+    super_counts = dict(
+        db.query(Student.course_id, func.count(Student.id)).filter(
+            Student.institution_id == institution_id,
+            Student.admission_year == academic_year,
+            Student.is_archived == False,
+            Student.is_supernumerary == True
+        ).group_by(Student.course_id).all()
+    )
+
     alerts = []
     for c in courses:
         cfg = intake_by_course.get(c.id)
         enrolled = enrolled_counts.get(c.id, 0)
+        reg_enrolled = regular_counts.get(c.id, 0)
+        sup_enrolled = super_counts.get(c.id, 0)
         approved = cfg.approved_intake if cfg else 0
 
         if not cfg:
@@ -339,6 +477,8 @@ def compute_aggregate_intake_alerts(db: Session, institution_id: int, academic_y
                 "course_name": c.name,
                 "academic_year": academic_year,
                 "enrolled_count": enrolled,
+                "regular_count": reg_enrolled,
+                "supernumerary_count": sup_enrolled,
                 "approved_intake": 0,
                 "status": "Configuration Missing",
                 "message": f"Course {c.code} has no approved intake configuration for batch {academic_year}."
@@ -350,23 +490,27 @@ def compute_aggregate_intake_alerts(db: Session, institution_id: int, academic_y
                 "course_name": c.name,
                 "academic_year": academic_year,
                 "enrolled_count": enrolled,
+                "regular_count": reg_enrolled,
+                "supernumerary_count": sup_enrolled,
                 "approved_intake": 0,
                 "status": "Configuration Missing",
                 "message": f"Configured intake for {c.code} is zero."
             })
         else:
-            util = (enrolled / approved) * 100.0
-            if enrolled > approved:
+            util = (reg_enrolled / approved) * 100.0
+            if reg_enrolled > approved:
                 alerts.append({
                     "course_id": c.id,
                     "course_code": c.code,
                     "course_name": c.name,
                     "academic_year": academic_year,
                     "enrolled_count": enrolled,
+                    "regular_count": reg_enrolled,
+                    "supernumerary_count": sup_enrolled,
                     "approved_intake": approved,
                     "utilization_percent": round(util, 1),
                     "status": "Exceeds Capacity",
-                    "message": f"Course {c.code} enrollment ({enrolled}) exceeds approved intake ({approved}) by {enrolled - approved} seats ({util:.1f}%)."
+                    "message": f"Course {c.code} regular enrollment ({reg_enrolled}) exceeds approved intake ({approved}) by {reg_enrolled - approved} seats ({util:.1f}%)."
                 })
             elif util >= 90.0:
                 alerts.append({
@@ -375,10 +519,12 @@ def compute_aggregate_intake_alerts(db: Session, institution_id: int, academic_y
                     "course_name": c.name,
                     "academic_year": academic_year,
                     "enrolled_count": enrolled,
+                    "regular_count": reg_enrolled,
+                    "supernumerary_count": sup_enrolled,
                     "approved_intake": approved,
                     "utilization_percent": round(util, 1),
                     "status": "Near Capacity",
-                    "message": f"Course {c.code} is near capacity at {util:.1f}% ({enrolled}/{approved})."
+                    "message": f"Course {c.code} is near capacity at {util:.1f}% ({reg_enrolled}/{approved})."
                 })
 
     return alerts

@@ -44,7 +44,7 @@ class UserResponse(BaseModel):
     email: str
     full_name: str
     role: str
-    institution_id: int
+    institution_id: Optional[int] = None
     institution: Optional[InstitutionResponse] = None
     is_active: bool
 

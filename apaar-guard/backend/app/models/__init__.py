@@ -9,6 +9,7 @@ from app.models.review import ReviewCase, ReviewNote
 from app.models.import_job import ImportJob, ImportJobError
 from app.models.intake import IntakeConfiguration
 from app.models.audit import AuditLog
+from app.models.consent import StudentConsent, StudentConsentEvent
 
 __all__ = [
     "Base",
@@ -23,6 +24,8 @@ __all__ = [
     "ImportJob",
     "ImportJobError",
     "IntakeConfiguration",
-    "AuditLog"
+    "AuditLog",
+    "StudentConsent",
+    "StudentConsentEvent"
 ]
 

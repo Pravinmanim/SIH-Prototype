@@ -283,7 +283,23 @@ export const VerificationPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-slate-700 max-w-xs">
-                      {c.reason}
+                      {c.is_cross_institution ? (
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-800">
+                            Cross-Institution
+                          </span>
+                          <span>{c.reason}</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-1 items-start">
+                          {c.has_duplicate_alert && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800">
+                              Internal Duplicate
+                            </span>
+                          )}
+                          <span>{c.reason}</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
@@ -449,39 +465,70 @@ export const VerificationPage: React.FC = () => {
                       </div>
 
                       {/* Record B */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                        <span className="font-bold text-slate-800 block text-xs">{t('verif_record_b', 'Record B (Matched Candidate)')}</span>
-                        <div className="space-y-1.5 text-xs">
-                          <div>
-                            <span className="text-slate-400 block text-[11px]">{t('col_full_name', 'Full Name')}</span>
-                            <span className={`font-semibold ${caseDetail.matching_fields.includes('full_name') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
-                              {caseDetail.peer_student?.full_name}
+                      {caseDetail.peer_student?.is_cross_institution ? (
+                        <div className="p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-purple-950 block text-xs">{t('verif_record_b_cross', 'Record B (External Institution Record)')}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-200 text-purple-900">
+                              Privacy Protected
                             </span>
                           </div>
-                          <div>
-                            <span className="text-slate-400 block text-[11px]">{t('col_roll_number', 'Roll Number')}</span>
-                            <span className={`font-mono ${caseDetail.matching_fields.includes('roll_number') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
-                              {caseDetail.peer_student?.roll_number}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[11px]">{t('col_apaar_id', 'Masked APAAR ID')}</span>
-                            <span className={`font-mono ${caseDetail.matching_fields.includes('apaar_id') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
-                              {caseDetail.peer_student?.masked_apaar_id}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[11px]">{t('col_course', 'Course')} & {t('col_year', 'Year')}</span>
-                            <span className="text-slate-800">{caseDetail.peer_student?.course_name} ({caseDetail.peer_student?.admission_year})</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block text-[11px]">{t('field_dob', 'Date of Birth')}</span>
-                            <span className={`font-semibold ${caseDetail.matching_fields.includes('date_of_birth') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
-                              {caseDetail.peer_student?.date_of_birth || 'Not Specified'}
-                            </span>
+                          <div className="space-y-2 text-xs pt-1">
+                            <div>
+                              <span className="text-slate-500 block text-[11px]">{t('col_institution', 'Institution')}</span>
+                              <span className="font-semibold text-slate-900">
+                                {caseDetail.peer_student?.institution_name} ({caseDetail.peer_student?.institution_code})
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500 block text-[11px]">{t('col_apaar_id', 'Masked APAAR ID')}</span>
+                              <span className="font-mono bg-amber-100 text-amber-900 px-1 rounded">
+                                {caseDetail.peer_student?.masked_apaar_id}
+                              </span>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white/90 border border-purple-200 text-[11px] text-purple-950 leading-relaxed">
+                              <strong>Multi-Tenant Privacy Boundary:</strong> In compliance with student data isolation and privacy regulations, personal identity attributes (student name, roll number, course, contacts, and date of birth) registered at the other institution are strictly protected and withheld.
+                            </div>
+                            <div className="text-[11px] text-slate-600">
+                              <strong>Recommended Action:</strong> Ask the student to produce their original APAAR card or DigiLocker credentials locally.
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                          <span className="font-bold text-slate-800 block text-xs">{t('verif_record_b', 'Record B (Matched Candidate)')}</span>
+                          <div className="space-y-1.5 text-xs">
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">{t('col_full_name', 'Full Name')}</span>
+                              <span className={`font-semibold ${caseDetail.matching_fields.includes('full_name') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
+                                {caseDetail.peer_student?.full_name}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">{t('col_roll_number', 'Roll Number')}</span>
+                              <span className={`font-mono ${caseDetail.matching_fields.includes('roll_number') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
+                                {caseDetail.peer_student?.roll_number}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">{t('col_apaar_id', 'Masked APAAR ID')}</span>
+                              <span className={`font-mono ${caseDetail.matching_fields.includes('apaar_id') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
+                                {caseDetail.peer_student?.masked_apaar_id}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">{t('col_course', 'Course')} & {t('col_year', 'Year')}</span>
+                              <span className="text-slate-800">{caseDetail.peer_student?.course_name} ({caseDetail.peer_student?.admission_year})</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[11px]">{t('field_dob', 'Date of Birth')}</span>
+                              <span className={`font-semibold ${caseDetail.matching_fields.includes('date_of_birth') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
+                                {caseDetail.peer_student?.date_of_birth || 'Not Specified'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (

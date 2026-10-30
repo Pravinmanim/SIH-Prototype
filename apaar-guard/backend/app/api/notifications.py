@@ -9,6 +9,7 @@ from app.models.review import ReviewCase
 from app.models.student import Student
 from app.models.intake import IntakeConfiguration
 from app.models.import_job import ImportJob
+from app.models.duplicate import DuplicateAlert
 
 router = APIRouter(prefix="/notifications", tags=["Notification Centre"])
 
@@ -21,10 +22,10 @@ def get_live_notifications(
     now = datetime.now(timezone.utc)
     notifications = []
 
-    # 1. Pending Review Cases
+    # 1. Pending Review Cases (canonical status: "Pending Review")
     pending_reviews = db.query(ReviewCase).filter(
         ReviewCase.institution_id == inst_id,
-        ReviewCase.status == "PENDING_REVIEW"
+        ReviewCase.status == "Pending Review"
     ).count()
 
     if pending_reviews > 0:
@@ -39,10 +40,10 @@ def get_live_notifications(
             "count": pending_reviews
         })
 
-    # 2. Duplicate Alerts
-    duplicate_count = db.query(Student).filter(
-        Student.institution_id == inst_id,
-        Student.status == "De-Duplicated"
+    # 2. Duplicate Alerts (open duplicate alerts for current institution)
+    duplicate_count = db.query(DuplicateAlert).filter(
+        DuplicateAlert.institution_id == inst_id,
+        DuplicateAlert.status == "open"
     ).count()
 
     if duplicate_count > 0:
@@ -50,17 +51,18 @@ def get_live_notifications(
             "id": "notif-duplicates",
             "type": "DUPLICATES_FLAGGED",
             "title": "Duplicate Records Detected",
-            "message": f"{duplicate_count} student record{'s' if duplicate_count != 1 else ''} identified with matching APAAR IDs or roll numbers.",
+            "message": f"{duplicate_count} duplicate alert{'s' if duplicate_count != 1 else ''} identified with matching APAAR IDs or roll numbers.",
             "severity": "warning",
-            "link": "/students?status=De-Duplicated",
+            "link": "/verification",
             "timestamp": now.isoformat(),
             "count": duplicate_count
         })
 
-    # 3. Invalid Student Records
+    # 3. Invalid Student Records (active records failing validation)
     invalid_count = db.query(Student).filter(
         Student.institution_id == inst_id,
-        Student.status == "Invalid Data"
+        Student.status == "Invalid Data",
+        Student.is_archived == False
     ).count()
 
     if invalid_count > 0:
@@ -75,7 +77,7 @@ def get_live_notifications(
             "count": invalid_count
         })
 
-    # 4. Intake Capacity Alerts
+    # 4. Intake Capacity Alerts (active non-archived students per course)
     intake_configs = db.query(IntakeConfiguration).filter(
         IntakeConfiguration.institution_id == inst_id
     ).all()
@@ -85,7 +87,7 @@ def get_live_notifications(
             Student.institution_id == inst_id,
             Student.course_id == config.course_id,
             Student.admission_year == config.academic_year,
-            Student.status != "Archived"
+            Student.is_archived == False
         ).count()
 
         if config.approved_intake > 0:
@@ -115,28 +117,35 @@ def get_live_notifications(
                     "count": enrolled
                 })
 
-    # 5. Recent Bulk Import Jobs
+    # 5. Recent Bulk Import Jobs (using valid ImportJob fields)
     recent_jobs = db.query(ImportJob).filter(
         ImportJob.institution_id == inst_id
     ).order_by(ImportJob.created_at.desc()).limit(3).all()
 
     for job in recent_jobs:
-        if job.status == "FAILED":
+        job_status = (job.status or "").lower()
+        if job_status == "failed":
+            error_msg = "Validation or file processing error"
+            if job.errors and len(job.errors) > 0:
+                first_err = job.errors[0]
+                error_msg = first_err.error_message or error_msg
             notifications.append({
                 "id": f"notif-job-failed-{job.id}",
                 "type": "IMPORT_FAILED",
                 "title": "Bulk Import Failed",
-                "message": f"Batch file '{job.filename}' failed during processing: {job.error_summary or 'Validation error'}.",
+                "message": f"Batch file '{job.filename}' failed during processing: {error_msg}.",
                 "severity": "danger",
                 "link": "/import",
                 "timestamp": job.created_at.isoformat() if job.created_at else now.isoformat()
             })
-        elif job.status == "COMPLETED" and (job.failed_rows or 0) > 0:
+        elif job_status == "completed" and (job.invalid_rows or 0) > 0:
+            created = job.created_rows or 0
+            invalid = job.invalid_rows or 0
             notifications.append({
                 "id": f"notif-job-partial-{job.id}",
                 "type": "IMPORT_PARTIAL",
                 "title": "Bulk Import Completed with Rejections",
-                "message": f"'{job.filename}': {job.successful_rows} imported, {job.failed_rows} rows rejected.",
+                "message": f"'{job.filename}': {created} imported, {invalid} rows rejected.",
                 "severity": "info",
                 "link": "/import",
                 "timestamp": job.created_at.isoformat() if job.created_at else now.isoformat()

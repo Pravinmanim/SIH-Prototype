@@ -91,13 +91,26 @@ def export_csv_report(
         for a in alerts:
             s1 = a.student_1
             s2 = a.student_2
+            s1_roll = s1.roll_number if s1 else ""
+            s1_name = s1.full_name if s1 else ""
+            s2_roll = s2.roll_number if s2 else ""
+            s2_name = s2.full_name if s2 else ""
+
+            # Privacy scrub for cross-institution records
+            if s1 and s1.institution_id != inst_id:
+                s1_roll = "[External Institution]"
+                s1_name = "[Protected Identity]"
+            if s2 and s2.institution_id != inst_id:
+                s2_roll = "[External Institution]"
+                s2_name = "[Protected Identity]"
+
             rows.append({
                 "Alert ID": a.id,
                 "Alert Type": a.alert_type,
-                "Student 1 Roll": s1.roll_number if s1 else "",
-                "Student 1 Name": s1.full_name if s1 else "",
-                "Student 2 Roll": s2.roll_number if s2 else "",
-                "Student 2 Name": s2.full_name if s2 else "",
+                "Student 1 Roll": s1_roll,
+                "Student 1 Name": s1_name,
+                "Student 2 Roll": s2_roll,
+                "Student 2 Name": s2_name,
                 "Matching Fields": a.matching_fields,
                 "Similarity Score": a.similarity_score,
                 "Status": a.status,
@@ -110,21 +123,38 @@ def export_csv_report(
             IntakeConfiguration.institution_id == inst_id
         ).all()
         for i in intakes:
-            count = db.query(Student).filter(
+            total_count = db.query(Student).filter(
                 Student.institution_id == inst_id,
                 Student.course_id == i.course_id,
                 Student.admission_year == i.academic_year,
                 Student.is_archived == False
             ).count()
-            util = round((count / i.approved_intake * 100.0), 1) if i.approved_intake > 0 else 0.0
+            reg_count = db.query(Student).filter(
+                Student.institution_id == inst_id,
+                Student.course_id == i.course_id,
+                Student.admission_year == i.academic_year,
+                Student.is_archived == False,
+                Student.is_supernumerary == False
+            ).count()
+            sup_count = db.query(Student).filter(
+                Student.institution_id == inst_id,
+                Student.course_id == i.course_id,
+                Student.admission_year == i.academic_year,
+                Student.is_archived == False,
+                Student.is_supernumerary == True
+            ).count()
+            util = round((reg_count / i.approved_intake * 100.0), 1) if i.approved_intake > 0 else 0.0
             rows.append({
                 "Course": i.course.code if i.course else "",
                 "Academic Year": i.academic_year,
                 "Approved Intake": i.approved_intake,
-                "Enrolled Count": count,
-                "Remaining": i.approved_intake - count,
+                "Supernumerary Quota": i.supernumerary_intake,
+                "Total Enrolled": total_count,
+                "Regular Enrolled": reg_count,
+                "Supernumerary Enrolled": sup_count,
+                "Remaining": i.approved_intake - reg_count,
                 "Utilization %": util,
-                "Status": "Exceeds Capacity" if count > i.approved_intake else "Near Capacity" if util >= 90 else "Within Capacity"
+                "Status": "Exceeds Capacity" if reg_count > i.approved_intake else "Near Capacity" if util >= 90 else "Within Capacity"
             })
         filename = f"intake_utilization_{now_str}.csv"
 

@@ -90,6 +90,7 @@ export const DashboardLayout: React.FC = () => {
 
   // Navigation Items organized per PAKSHYA architecture
   const mainNavItems = [
+    { label: 'Regulator Oversight', path: '/regulator', icon: ShieldCheck, roles: ['regulator'] },
     { label: t('navDashboard'), path: '/dashboard', icon: LayoutDashboard, roles: ['institution_admin', 'verification_officer'] },
     { label: t('navStudents'), path: '/students', icon: Users, roles: ['institution_admin', 'verification_officer'] },
     { label: t('navBulkImport'), path: '/import', icon: UploadCloud, roles: ['institution_admin'] },
@@ -100,8 +101,8 @@ export const DashboardLayout: React.FC = () => {
 
   const additionalNavItems = [
     { label: t('navAudit'), path: '/audit', icon: History, roles: ['institution_admin', 'verification_officer'] },
-    { label: t('navRules'), path: '/rules', icon: BookOpen, roles: ['institution_admin', 'verification_officer'] },
-    { label: t('navHelp'), path: '/help', icon: HelpCircle, roles: ['institution_admin', 'verification_officer'] },
+    { label: t('navRules'), path: '/rules', icon: BookOpen, roles: ['institution_admin', 'verification_officer', 'regulator'] },
+    { label: t('navHelp'), path: '/help', icon: HelpCircle, roles: ['institution_admin', 'verification_officer', 'regulator'] },
     { label: t('navSettings'), path: '/settings', icon: Settings, roles: ['institution_admin'] },
     { label: t('navTools'), path: '/tools', icon: Wrench, roles: ['institution_admin', 'verification_officer'] },
   ];

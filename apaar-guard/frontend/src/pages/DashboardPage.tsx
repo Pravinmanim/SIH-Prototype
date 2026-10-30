@@ -214,7 +214,7 @@ export const DashboardPage: React.FC = () => {
             <MetricCard
               title={t('kpi_intake', 'Intake')}
               value={`${kpis.intake_utilization || 0}%`}
-              subtitle={t('kpi_intake_sub', 'Of approved quota')}
+              subtitle={kpis.total_supernumerary_enrolled ? `Regular Quota (${kpis.total_supernumerary_enrolled} supernumerary)` : t('kpi_intake_sub', 'Of approved quota')}
               icon={TrendingUp}
               colorVariant="indigo"
               onClick={() => navigate('/intake')}

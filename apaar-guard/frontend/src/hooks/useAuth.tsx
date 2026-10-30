@@ -7,6 +7,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isOfficer: boolean;
+  isRegulator: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -74,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAdmin = user?.role === 'institution_admin';
   const isOfficer = user?.role === 'verification_officer';
+  const isRegulator = user?.role === 'regulator';
 
   return (
     <AuthContext.Provider
@@ -82,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         isAdmin,
         isOfficer,
+        isRegulator,
         login,
         logout,
         refreshUser,

@@ -11,6 +11,7 @@ class IntakeConfiguration(Base, TimestampMixin):
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
     academic_year = Column(Integer, nullable=False, index=True)
     approved_intake = Column(Integer, nullable=False)
+    supernumerary_intake = Column(Integer, default=0, nullable=False)
     source = Column(String(255), default="Entered by institution admin", nullable=False)
     notes = Column(Text, nullable=True)
     updated_by_user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

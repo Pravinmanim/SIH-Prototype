@@ -7,10 +7,32 @@ from app.core.config import settings
 from app.core.database import Base, engine, SessionLocal
 import app.models  # Ensure all models are registered
 
+def ensure_schema_updates(bind_engine):
+    """
+    Non-destructively verifies and adds missing columns for schema evolutions.
+    Preserves all existing tables and data records.
+    """
+    from sqlalchemy import inspect, text
+    inspector = inspect(bind_engine)
+    with bind_engine.connect() as conn:
+        tables = inspector.get_table_names()
+        if "students" in tables:
+            student_cols = {c["name"] for c in inspector.get_columns("students")}
+            if "admission_category" not in student_cols:
+                conn.execute(text("ALTER TABLE students ADD COLUMN admission_category VARCHAR(50) DEFAULT 'General' NOT NULL"))
+            if "is_supernumerary" not in student_cols:
+                conn.execute(text("ALTER TABLE students ADD COLUMN is_supernumerary BOOLEAN DEFAULT 0 NOT NULL"))
+        if "intake_configurations" in tables:
+            intake_cols = {c["name"] for c in inspector.get_columns("intake_configurations")}
+            if "supernumerary_intake" not in intake_cols:
+                conn.execute(text("ALTER TABLE intake_configurations ADD COLUMN supernumerary_intake INTEGER DEFAULT 0 NOT NULL"))
+        conn.commit()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Ensure tables exist
     Base.metadata.create_all(bind=engine)
+    ensure_schema_updates(engine)
     # Automatically seed initial database on first launch if empty
     db = SessionLocal()
     try:
@@ -18,6 +40,23 @@ async def lifespan(app: FastAPI):
         if db.query(Institution).first() is None:
             from app.seed import seed_data
             seed_data(db)
+
+        # Ensure demo regulator user is provisioned for prototype evaluation only in development environment
+        if settings.APP_ENV == "development":
+            from app.models.user import User
+            if db.query(User).filter(User.role == "regulator").first() is None:
+                from app.core.security import hash_password
+                inst1 = db.query(Institution).first()
+                reg_user = User(
+                    email="rajesh.regulator@aicte.gov.in",
+                    hashed_password=hash_password("password123"),
+                    full_name="Dr. Rajesh Kumar (AICTE Regulator)",
+                    role="regulator",
+                    institution_id=inst1.id if inst1 else 1,
+                    is_active=True
+                )
+                db.add(reg_user)
+                db.commit()
     except Exception as e:
         print(f"Initial seed check: {e}")
     finally:
@@ -83,6 +122,8 @@ from app.api.reports import router as reports_router
 from app.api.audit import router as audit_router
 from app.api.institution import router as institution_router
 from app.api.notifications import router as notifications_router
+from app.api.regulator import router as regulator_router
+from app.api.consent import router as consent_router
 
 router_list = [
     auth_router,
@@ -96,6 +137,8 @@ router_list = [
     audit_router,
     institution_router,
     notifications_router,
+    regulator_router,
+    consent_router,
 ]
 
 for r in router_list:

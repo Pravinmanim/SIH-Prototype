@@ -44,6 +44,7 @@ def list_review_cases(
     items = []
     for c in cases:
         student = c.student
+        is_cross = bool(c.duplicate_alert and c.duplicate_alert.alert_type == "cross_institution_apaar")
         items.append({
             "id": c.id,
             "institution_id": c.institution_id,
@@ -58,6 +59,7 @@ def list_review_cases(
             "severity": c.severity,
             "status": c.status,
             "has_duplicate_alert": bool(c.duplicate_alert_id),
+            "is_cross_institution": is_cross,
             "created_at": c.created_at.isoformat() if c.created_at else None,
             "resolved_at": c.resolved_at.isoformat() if c.resolved_at else None,
             "resolution_summary": c.resolution_summary
@@ -99,27 +101,42 @@ def get_case_detail(
 
     peer_data = None
     matching_fields = []
+    is_cross_institution = False
     if case.duplicate_alert:
         dup = case.duplicate_alert
+        is_cross_institution = (dup.alert_type == "cross_institution_apaar")
         peer_id = dup.student_id_1 if dup.student_id_2 == case.student_id else dup.student_id_2
         peer = db.query(Student).filter(Student.id == peer_id).first()
         if peer:
-            peer_data = {
-                "id": peer.id,
-                "roll_number": peer.roll_number,
-                "full_name": peer.full_name,
-                "course_name": peer.course.name if peer.course else None,
-                "course_code": peer.course.code if peer.course else None,
-                "masked_apaar_id": mask_apaar_id(peer.apaar_id),
-                "has_apaar": bool(peer.apaar_id),
-                "admission_year": peer.admission_year,
-                "date_of_birth": peer.date_of_birth,
-                "gender": peer.gender,
-                "email": peer.email,
-                "phone": peer.phone,
-                "status": peer.status,
-                "version": peer.version
-            }
+            if peer.institution_id != case.institution_id or is_cross_institution:
+                is_cross_institution = True
+                other_inst = peer.institution
+                peer_data = {
+                    "is_cross_institution": True,
+                    "institution_name": other_inst.name if other_inst else "Another Registered Institution",
+                    "institution_code": other_inst.code if other_inst else "OTHER",
+                    "masked_apaar_id": mask_apaar_id(peer.apaar_id),
+                    "has_apaar": bool(peer.apaar_id),
+                    "status": "Potential Duplicate in Other Institution"
+                }
+            else:
+                peer_data = {
+                    "is_cross_institution": False,
+                    "id": peer.id,
+                    "roll_number": peer.roll_number,
+                    "full_name": peer.full_name,
+                    "course_name": peer.course.name if peer.course else None,
+                    "course_code": peer.course.code if peer.course else None,
+                    "masked_apaar_id": mask_apaar_id(peer.apaar_id),
+                    "has_apaar": bool(peer.apaar_id),
+                    "admission_year": peer.admission_year,
+                    "date_of_birth": peer.date_of_birth,
+                    "gender": peer.gender,
+                    "email": peer.email,
+                    "phone": peer.phone,
+                    "status": peer.status,
+                    "version": peer.version
+                }
         try:
             matching_fields = json.loads(dup.matching_fields)
         except Exception:
@@ -135,6 +152,10 @@ def get_case_detail(
             "created_at": n.created_at.isoformat()
         })
 
+    boundary_notice = "Similarity or duplicate alert is not proof of identity or fraud. Verify official documents locally."
+    if is_cross_institution:
+        boundary_notice = "Potential cross-institution collision detected with another registered institution. Under tenant privacy regulations, student identity details from the other institution are withheld. Local physical document verification with the student is required."
+
     return {
         "case": {
             "id": case.id,
@@ -147,12 +168,14 @@ def get_case_detail(
             "resolution_summary": case.resolution_summary,
             "resolved_at": case.resolved_at.isoformat() if case.resolved_at else None,
             "created_at": case.created_at.isoformat(),
+            "is_cross_institution": is_cross_institution
         },
         "student": student_data,
         "peer_student": peer_data,
+        "is_cross_institution": is_cross_institution,
         "matching_fields": matching_fields,
         "notes": notes,
-        "boundary_notice": "Similarity or duplicate alert is not proof of identity or fraud. Verify official documents locally."
+        "boundary_notice": boundary_notice
     }
 
 @router.post("/cases/{case_id}/action")

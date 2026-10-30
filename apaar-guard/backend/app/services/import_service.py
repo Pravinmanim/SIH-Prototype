@@ -16,7 +16,8 @@ from app.schemas.student import (
     validate_full_name,
     validate_indian_phone,
     validate_email_format,
-    validate_dob_calendar
+    validate_dob_calendar,
+    validate_admission_category
 )
 
 FIELD_SYNONYMS = {
@@ -29,6 +30,8 @@ FIELD_SYNONYMS = {
     "gender": ["gender", "sex"],
     "email": ["email", "email_address", "student_email", "mail"],
     "phone": ["phone", "mobile", "contact", "contact_number", "mobile_no"],
+    "admission_category": ["category", "admission_category", "seat_category", "quota", "admission_type"],
+    "is_supernumerary": ["supernumerary", "is_supernumerary", "supernumerary_seat", "supernumerary_admission"],
 }
 
 REQUIRED_IMPORT_FIELDS = ["roll_number", "full_name", "course_code", "admission_year"]
@@ -122,6 +125,17 @@ def validate_and_stage_import(
         gender = str(row.get(mapping.get("gender", ""), "")).strip()
         email = str(row.get(mapping.get("email", ""), "")).strip()
         phone = str(row.get(mapping.get("phone", ""), "")).strip()
+        cat_raw = str(row.get(mapping.get("admission_category", ""), "")).strip()
+        super_raw = str(row.get(mapping.get("is_supernumerary", ""), "")).strip().lower()
+
+        category = "General"
+        if cat_raw:
+            try:
+                category = validate_admission_category(cat_raw)
+            except ValueError as ve:
+                row_errors.append(str(ve))
+
+        is_super = super_raw in ["true", "1", "yes", "y", "t", "supernumerary"]
 
         if not roll:
             row_errors.append("Roll number is required and cannot be blank.")
@@ -188,6 +202,19 @@ def validate_and_stage_import(
                 peer = existing_apaars[norm_apaar]
                 row_errors.append(f"APAAR ID '{apaar}' matches existing student record: {peer.roll_number} ({peer.full_name}).")
                 is_duplicate = True
+            elif len(norm_apaar) == 12 and norm_apaar.isdigit():
+                # Detect cross-institution collision without leaking peer PII or rejecting valid batch
+                from sqlalchemy import func
+                cross_peer = db.query(Student).filter(
+                    Student.institution_id != institution_id,
+                    Student.is_archived == False,
+                    (
+                        (Student.apaar_id == norm_apaar) |
+                        (func.replace(func.replace(Student.apaar_id, "-", ""), " ", "") == norm_apaar)
+                    )
+                ).first()
+                if cross_peer:
+                    needs_review = True
             seen_file_apaars.add(norm_apaar)
 
         existing_match = None
@@ -244,6 +271,8 @@ def validate_and_stage_import(
             "gender": gender,
             "email": email,
             "phone": phone,
+            "admission_category": category,
+            "is_supernumerary": is_super,
             "status": row_status,
             "errors": row_errors
         }
@@ -334,6 +363,10 @@ def commit_import_job(
                                 existing_s.email = r["email"]
                             if r["phone"]:
                                 existing_s.phone = r["phone"]
+                            if "admission_category" in r:
+                                existing_s.admission_category = r["admission_category"]
+                            if "is_supernumerary" in r:
+                                existing_s.is_supernumerary = bool(r["is_supernumerary"])
                             existing_s.version += 1
                             updated_count += 1
                             continue
@@ -361,6 +394,8 @@ def commit_import_job(
                 admission_year=r["admission_year"],
                 email=r["email"] if r["email"] else None,
                 phone=r["phone"] if r["phone"] else None,
+                admission_category=r.get("admission_category", "General"),
+                is_supernumerary=bool(r.get("is_supernumerary", False)),
                 status="Ready" if r["status"] == "valid" else "Needs Review",
                 version=1
             )

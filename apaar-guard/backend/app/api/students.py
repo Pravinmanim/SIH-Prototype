@@ -5,7 +5,7 @@ from typing import Optional, List
 from datetime import datetime, timezone
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_admin, verify_institution_access
+from app.core.dependencies import get_current_user, require_admin, verify_institution_access, require_officer_or_admin
 from app.models.user import User
 from app.models.student import Student
 from app.models.course import Course
@@ -28,7 +28,7 @@ router = APIRouter(tags=["Student Records"])
 @router.get("/courses", response_model=List[CourseResponse])
 def get_institution_courses(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_officer_or_admin)
 ):
     return db.query(Course).filter(Course.institution_id == current_user.institution_id).order_by(Course.code).all()
 
@@ -39,11 +39,13 @@ def list_students(
     search: Optional[str] = Query(None, description="Search by name, roll number, or APAAR ID"),
     course_id: Optional[int] = Query(None),
     admission_year: Optional[int] = Query(None),
+    category: Optional[str] = Query(None, alias="category"),
+    is_supernumerary: Optional[bool] = Query(None),
     status: Optional[str] = Query(None),
     sort_by: str = Query("created_at"),
     sort_order: str = Query("desc"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_officer_or_admin)
 ):
     query = db.query(Student).filter(
         Student.institution_id == current_user.institution_id,
@@ -64,6 +66,10 @@ def list_students(
         query = query.filter(Student.course_id == course_id)
     if admission_year:
         query = query.filter(Student.admission_year == admission_year)
+    if category and category != "ALL":
+        query = query.filter(Student.admission_category == category)
+    if is_supernumerary is not None:
+        query = query.filter(Student.is_supernumerary == is_supernumerary)
     if status and status != "ALL":
         query = query.filter(Student.status == status)
 
@@ -96,6 +102,8 @@ def list_students(
             admission_year=s.admission_year,
             email=s.email,
             phone=s.phone,
+            admission_category=s.admission_category or "General",
+            is_supernumerary=bool(s.is_supernumerary),
             status=s.status,
             version=s.version,
             is_archived=s.is_archived,
@@ -115,7 +123,7 @@ def list_students(
 def get_student_detail(
     student_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_officer_or_admin)
 ):
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
@@ -131,6 +139,8 @@ def get_student_detail(
     return StudentDetailResponse(
         id=student.id,
         institution_id=student.institution_id,
+        institution_name=student.institution.name if student.institution else None,
+        institution_code=student.institution.code if student.institution else None,
         course_id=student.course_id,
         course=student.course,
         masked_apaar_id=mask_apaar_id(student.apaar_id),
@@ -143,6 +153,8 @@ def get_student_detail(
         admission_year=student.admission_year,
         email=student.email,
         phone=student.phone,
+        admission_category=student.admission_category or "General",
+        is_supernumerary=bool(student.is_supernumerary),
         status=student.status,
         version=student.version,
         is_archived=student.is_archived,
@@ -237,6 +249,8 @@ def create_student(
         admission_year=req.admission_year,
         email=req.email.strip().lower() if req.email else None,
         phone=req.phone.strip() if req.phone else None,
+        admission_category=req.admission_category or "General",
+        is_supernumerary=bool(req.is_supernumerary),
         status="Needs Review",
         version=1
     )
@@ -262,6 +276,22 @@ def create_student(
         ))
     db.commit()
     db.refresh(student)
+
+    # Cross-institution duplicate synchronization & audit
+    cross_peer = validation_engine.sync_student_cross_institution_collision(db, student)
+    if cross_peer:
+        record_audit_log(
+            db=db,
+            action="CROSS_INSTITUTION_COLLISION_DETECTED",
+            target_type="STUDENT",
+            target_id=str(student.id),
+            outcome="SUCCESS",
+            details={
+                "masked_apaar": mask_apaar_id(student.apaar_id),
+                "collision_type": "cross_institution"
+            },
+            user=current_user
+        )
 
     record_audit_log(
         db=db,
@@ -357,6 +387,10 @@ def update_student(
         student.email = req.email.strip().lower() if req.email.strip() else None
     if req.phone is not None:
         student.phone = req.phone.strip() if req.phone.strip() else None
+    if req.admission_category is not None:
+        student.admission_category = req.admission_category
+    if req.is_supernumerary is not None:
+        student.is_supernumerary = bool(req.is_supernumerary)
 
     # Bump version
     student.version += 1
@@ -382,6 +416,22 @@ def update_student(
 
     db.commit()
     db.refresh(student)
+
+    # Cross-institution duplicate synchronization & audit
+    cross_peer = validation_engine.sync_student_cross_institution_collision(db, student)
+    if cross_peer:
+        record_audit_log(
+            db=db,
+            action="CROSS_INSTITUTION_COLLISION_DETECTED",
+            target_type="STUDENT",
+            target_id=str(student.id),
+            outcome="SUCCESS",
+            details={
+                "masked_apaar": mask_apaar_id(student.apaar_id),
+                "collision_type": "cross_institution"
+            },
+            user=current_user
+        )
 
     record_audit_log(
         db=db,
@@ -432,37 +482,4 @@ def archive_student(
     )
 
     return {"message": f"Student '{student.full_name}' ({student.roll_number}) archived successfully."}
-
-@router.post("/students/{student_id}/reveal-apaar", response_model=StudentRevealResponse)
-def reveal_apaar_id(
-    student_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
-):
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student record not found.")
-
-    verify_institution_access(student.institution_id, current_user)
-
-    record_audit_log(
-        db=db,
-        action="APAAR_REVEALED",
-        target_type="STUDENT",
-        target_id=str(student.id),
-        outcome="SUCCESS",
-        details={
-            "roll_number": student.roll_number,
-            "masked_apaar": mask_apaar_id(student.apaar_id)
-        },
-        user=current_user
-    )
-
-    return StudentRevealResponse(
-        student_id=student.id,
-        roll_number=student.roll_number,
-        full_name=student.full_name,
-        apaar_id=student.apaar_id,
-        warning="Confidential APAAR ID accessed. Audit event logged."
-    )
 

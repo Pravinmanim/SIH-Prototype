@@ -19,6 +19,7 @@ const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.H
 const ToolsPage = lazy(() => import('./pages/ToolsPage').then(m => ({ default: m.ToolsPage })));
 const RulesPage = lazy(() => import('./pages/RulesPage').then(m => ({ default: m.RulesPage })));
 const InstitutionSettingsPage = lazy(() => import('./pages/InstitutionSettingsPage').then(m => ({ default: m.InstitutionSettingsPage })));
+const RegulatorDashboardPage = lazy(() => import('./pages/RegulatorDashboardPage').then(m => ({ default: m.RegulatorDashboardPage })));
 
 const PageLoadingFallback = () => (
   <div className="space-y-6 animate-pulse p-2">
@@ -38,11 +39,18 @@ const PageLoadingFallback = () => (
   </div>
 );
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
+const ProtectedRoute: React.FC<{ 
+  children: React.ReactNode; 
+  adminOnly?: boolean;
+  regulatorOnly?: boolean;
+  institutionalOnly?: boolean;
+}> = ({ 
   children, 
-  adminOnly = false 
+  adminOnly = false,
+  regulatorOnly = false,
+  institutionalOnly = false
 }) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isRegulator } = useAuth();
 
   if (loading) {
     return (
@@ -56,11 +64,24 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
     return <Navigate to="/login" replace />;
   }
 
-  if (adminOnly && !isAdmin) {
+  if (regulatorOnly && !isRegulator) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  if (institutionalOnly && isRegulator) {
+    return <Navigate to="/regulator" replace />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    return <Navigate to={isRegulator ? "/regulator" : "/dashboard"} replace />;
+  }
+
   return <>{children}</>;
+};
+
+const RootRedirect: React.FC = () => {
+  const { isRegulator } = useAuth();
+  return <Navigate to={isRegulator ? "/regulator" : "/dashboard"} replace />;
 };
 
 export function App() {
@@ -80,27 +101,41 @@ export function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<RootRedirect />} />
+                <Route 
+                  path="regulator" 
+                  element={
+                    <ProtectedRoute regulatorOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <RegulatorDashboardPage />
+                      </Suspense>
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route 
                   path="dashboard" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <DashboardPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <DashboardPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="students" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <StudentsPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <StudentsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="import" 
                   element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly institutionalOnly>
                       <Suspense fallback={<PageLoadingFallback />}>
                         <BulkImportPage />
                       </Suspense>
@@ -110,33 +145,41 @@ export function App() {
                 <Route 
                   path="verification" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <VerificationPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <VerificationPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="intake" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <IntakePage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <IntakePage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="reports" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <ReportsPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <ReportsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
                   path="audit" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AuditPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <AuditPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
@@ -150,9 +193,11 @@ export function App() {
                 <Route 
                   path="tools" 
                   element={
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <ToolsPage />
-                    </Suspense>
+                    <ProtectedRoute institutionalOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <ToolsPage />
+                      </Suspense>
+                    </ProtectedRoute>
                   } 
                 />
                 <Route 
@@ -166,7 +211,7 @@ export function App() {
                 <Route 
                   path="settings" 
                   element={
-                    <ProtectedRoute adminOnly>
+                    <ProtectedRoute adminOnly institutionalOnly>
                       <Suspense fallback={<PageLoadingFallback />}>
                         <InstitutionSettingsPage />
                       </Suspense>

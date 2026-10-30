@@ -110,6 +110,14 @@ def seed_data(db: Session):
             role="verification_officer",
             institution_id=cera.id
         ),
+        # Regulator (National AICTE Oversight)
+        User(
+            email="rajesh.regulator@aicte.gov.in",
+            hashed_password=password_hash,
+            full_name="Dr. Rajesh Kumar (AICTE Regulator)",
+            role="regulator",
+            institution_id=ait.id
+        ),
     ]
     db.add_all(users)
     db.commit()

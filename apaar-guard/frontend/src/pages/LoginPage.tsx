@@ -26,7 +26,7 @@ interface DemoAccount {
   role_label: string;
   institution_name: string;
   institution_code: string;
-  preset_password: string;
+  preset_password?: string;
 }
 
 export const LoginPage: React.FC = () => {
@@ -84,7 +84,7 @@ export const LoginPage: React.FC = () => {
 
   const selectDemoAccount = (acc: DemoAccount) => {
     setValue('email', acc.email, { shouldValidate: true });
-    setValue('password', acc.preset_password, { shouldValidate: true });
+    setValue('password', acc.preset_password || 'password123', { shouldValidate: true });
     setErrorMessage(null);
   };
 

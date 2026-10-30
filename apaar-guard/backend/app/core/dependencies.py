@@ -72,6 +72,14 @@ def require_officer_or_admin(current_user: User = Depends(get_current_user)) -> 
         )
     return current_user
 
+def require_regulator(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "regulator":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only authorized regulatory personnel can access this resource."
+        )
+    return current_user
+
 def verify_institution_access(target_institution_id: int, current_user: User) -> None:
     if current_user.institution_id != target_institution_id:
         raise HTTPException(

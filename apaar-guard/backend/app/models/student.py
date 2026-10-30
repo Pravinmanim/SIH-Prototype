@@ -19,6 +19,11 @@ class Student(Base, TimestampMixin):
     admission_year = Column(Integer, nullable=False, index=True)
     email = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)
+
+    # Intake and Admission Category Tracking (Phase 4)
+    # Supported categories: 'General', 'NRI', 'OCI', 'Foreign National', 'Other'
+    admission_category = Column(String(50), default="General", nullable=False, index=True)
+    is_supernumerary = Column(Boolean, default=False, nullable=False, index=True)
     
     # Validation status (ONLY 3 values: 'Ready', 'Invalid Data', 'Needs Review')
     status = Column(String(50), default="Needs Review", nullable=False, index=True)
@@ -35,9 +40,12 @@ class Student(Base, TimestampMixin):
         Index("ix_students_inst_status", "institution_id", "status"),
         Index("ix_students_inst_apaar", "institution_id", "apaar_id"),
         Index("ix_students_inst_year_course", "institution_id", "admission_year", "course_id"),
+        Index("ix_students_inst_year_cat", "institution_id", "admission_year", "admission_category"),
+        Index("ix_students_inst_year_super", "institution_id", "admission_year", "is_supernumerary"),
     )
 
     institution = relationship("Institution", back_populates="students")
     course = relationship("Course", back_populates="students")
     validation_results = relationship("ValidationResult", back_populates="student", cascade="all, delete-orphan")
     review_cases = relationship("ReviewCase", back_populates="student", cascade="all, delete-orphan")
+    consent = relationship("StudentConsent", back_populates="student", uselist=False, cascade="all, delete-orphan")

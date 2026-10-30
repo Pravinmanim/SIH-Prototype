@@ -115,7 +115,13 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 @router.get("/demo-accounts")
 def get_demo_accounts(db: Session = Depends(get_db)):
-    """Returns seeded demo accounts for rapid testing with safety disclaimer"""
+    """Returns seeded demo accounts for rapid testing with safety disclaimer. Disabled outside development."""
+    if settings.APP_ENV != "development":
+        return {
+            "disclaimer": "Demo account discovery is disabled outside the development environment.",
+            "accounts": []
+        }
+
     users = db.query(User).all()
     demo_accounts = []
     for u in users:
@@ -124,11 +130,14 @@ def get_demo_accounts(db: Session = Depends(get_db)):
             "email": u.email,
             "name": u.full_name,
             "role": u.role,
-            "role_label": "Institution Admin" if u.role == "institution_admin" else "Verification Officer",
+            "role_label": (
+                "AICTE Regulator (National Oversight)" if u.role == "regulator" else
+                "Institution Admin" if u.role == "institution_admin" else
+                "Verification Officer"
+            ),
             "institution_id": u.institution_id,
-            "institution_name": u.institution.name if u.institution else f"Institution {u.institution_id}",
-            "institution_code": u.institution.code if u.institution else "",
-            "preset_password": "password123"
+            "institution_name": "AICTE National Headquarters" if u.role == "regulator" else (u.institution.name if u.institution else f"Institution {u.institution_id}"),
+            "institution_code": "AICTE-HQ" if u.role == "regulator" else (u.institution.code if u.institution else ""),
         })
     return {
         "disclaimer": "Demo login — not production-secure",

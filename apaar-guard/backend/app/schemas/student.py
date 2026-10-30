@@ -130,6 +130,31 @@ def validate_roll_number(v: Optional[str], required: bool = True) -> Optional[st
         raise ValueError("Roll number cannot exceed 100 characters.")
     return s
 
+VALID_ADMISSION_CATEGORIES = {
+    "General": "General",
+    "NRI": "NRI",
+    "OCI": "OCI",
+    "Foreign National": "Foreign National",
+    "FN": "Foreign National",
+    "Other": "Other"
+}
+
+def validate_admission_category(v: Optional[str]) -> str:
+    """
+    Validates admission category against supported categories:
+    General, NRI, OCI, Foreign National (FN), Other.
+    Defaults to 'General' when empty.
+    """
+    if v is None:
+        return "General"
+    s = str(v).strip()
+    if not s:
+        return "General"
+    for valid_k, canonical in VALID_ADMISSION_CATEGORIES.items():
+        if s.lower() == valid_k.lower():
+            return canonical
+    raise ValueError(f"Admission category '{v}' is invalid. Supported: General, NRI, OCI, Foreign National, Other.")
+
 class CourseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -149,6 +174,13 @@ class StudentCreate(BaseModel):
     gender: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    admission_category: Optional[str] = "General"
+    is_supernumerary: Optional[bool] = False
+
+    @field_validator("admission_category")
+    @classmethod
+    def check_admission_category(cls, v):
+        return validate_admission_category(v)
 
     @field_validator("full_name")
     @classmethod
@@ -190,7 +222,16 @@ class StudentUpdate(BaseModel):
     gender: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    admission_category: Optional[str] = None
+    is_supernumerary: Optional[bool] = None
     version: Optional[int] = None  # Required for optimistic concurrency check
+
+    @field_validator("admission_category")
+    @classmethod
+    def check_admission_category(cls, v):
+        if v is not None:
+            return validate_admission_category(v)
+        return v
 
     @field_validator("full_name")
     @classmethod
@@ -243,6 +284,8 @@ class StudentListItemResponse(BaseModel):
     admission_year: int
     email: Optional[str]
     phone: Optional[str]
+    admission_category: str = "General"
+    is_supernumerary: bool = False
     status: str
     version: int
     is_archived: bool
@@ -274,6 +317,8 @@ class StudentDetailResponse(BaseModel):
 
     id: int
     institution_id: int
+    institution_name: Optional[str] = None
+    institution_code: Optional[str] = None
     course_id: Optional[int]
     course: Optional[CourseResponse] = None
     masked_apaar_id: str
@@ -286,6 +331,8 @@ class StudentDetailResponse(BaseModel):
     admission_year: int
     email: Optional[str]
     phone: Optional[str]
+    admission_category: str = "General"
+    is_supernumerary: bool = False
     status: str
     version: int
     is_archived: bool
