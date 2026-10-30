@@ -3,11 +3,15 @@ import {
   CheckCircle, 
   Edit3, 
   X, 
-  ShieldAlert
+  ShieldAlert,
+  Users,
+  TrendingUp,
+  BarChart3
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { Card, MetricCard } from '../components/ui/Card';
 
 export const IntakePage: React.FC = () => {
   const { isAdmin } = useAuth();
@@ -136,31 +140,35 @@ export const IntakePage: React.FC = () => {
       {/* Summary Utilization Cards */}
       {intakeData && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
-            <span className="text-xs text-slate-500 block uppercase font-semibold">Total Approved Intake</span>
-            <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{intakeData.total_approved_intake}</span>
-            <span className="text-[11px] text-slate-400">Sum of configured course seats</span>
-          </div>
-          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
-            <span className="text-xs text-slate-500 block uppercase font-semibold">Active Enrolled Students</span>
-            <span className="text-2xl font-extrabold text-blue-600 mt-1 block">{intakeData.total_enrolled_students}</span>
-            <span className="text-[11px] text-slate-400">Non-archived records in {selectedYear}</span>
-          </div>
-          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs">
-            <span className="text-xs text-slate-500 block uppercase font-semibold">Overall Seat Utilization</span>
-            <span className={`text-2xl font-extrabold mt-1 block ${
-              intakeData.overall_utilization > 100 ? 'text-rose-600' :
-              intakeData.overall_utilization >= 90 ? 'text-amber-600' : 'text-emerald-600'
-            }`}>
-              {intakeData.overall_utilization}%
-            </span>
-            <span className="text-[11px] text-slate-400">Capacity metric</span>
-          </div>
+          <MetricCard
+            title="Total Approved Intake"
+            value={intakeData.total_approved_intake}
+            subtitle="Sum of configured course seats"
+            icon={BarChart3}
+            colorVariant="blue"
+          />
+          <MetricCard
+            title="Active Enrolled Students"
+            value={intakeData.total_enrolled_students}
+            subtitle={`Non-archived records in ${selectedYear}`}
+            icon={Users}
+            colorVariant="blue"
+          />
+          <MetricCard
+            title="Overall Seat Utilization"
+            value={`${intakeData.overall_utilization}%`}
+            subtitle="AICTE intake capacity metric"
+            icon={TrendingUp}
+            colorVariant={
+              intakeData.overall_utilization > 100 ? 'rose' :
+              intakeData.overall_utilization >= 90 ? 'amber' : 'emerald'
+            }
+          />
         </div>
       )}
 
       {/* Intake Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <Card rounded="2xl" className="border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
@@ -250,7 +258,7 @@ export const IntakePage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* SET INTAKE MODAL (Admin Only) */}
       {editingItem && (

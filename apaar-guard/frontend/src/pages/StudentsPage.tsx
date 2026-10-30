@@ -22,7 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/api';
 import type { StudentListItem, StudentDetail, Course, PaginatedStudents, StudentRevealResponse } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Input, Select } from '../components/ui';
+import { Input, Select, Card } from '../components/ui';
 import {
   studentNameSchema,
   indianPhoneSchema,
@@ -280,7 +280,7 @@ export const StudentsPage: React.FC = () => {
       )}
 
       {/* Search and Filters Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm space-y-3">
+      <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search Input */}
           <div className="lg:col-span-2 relative">
@@ -350,10 +350,10 @@ export const StudentsPage: React.FC = () => {
             </button>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Student Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <Card rounded="2xl" className="border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
@@ -473,7 +473,7 @@ export const StudentsPage: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* DETAIL DRAWER */}
       {selectedStudentDetail && (

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { Card } from '../components/ui/Card';
 
 const ALLOWED_BUTTONS: Record<string, { label: string; action: string; variant: string }[]> = {
   'Pending Review': [
@@ -140,7 +141,7 @@ export const VerificationPage: React.FC = () => {
       )}
 
       {/* Filter Tabs & Severity Select */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs font-semibold">
           {['ALL', 'Pending Review', 'In Progress', 'Correction Requested', 'Resolved', 'False Positive'].map((st) => (
             <button
@@ -171,10 +172,10 @@ export const VerificationPage: React.FC = () => {
             <option value="low">Low</option>
           </select>
         </div>
-      </div>
+      </Card>
 
       {/* Queue List Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <Card rounded="2xl" className="border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
@@ -246,7 +247,7 @@ export const VerificationPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Case Review Modal / Side-by-side comparison */}
       {selectedCaseId && (

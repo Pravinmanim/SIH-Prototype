@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
+import { Card } from '../components/ui/Card';
 
 export const AuditPage: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -79,7 +80,7 @@ export const AuditPage: React.FC = () => {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <Card rounded="2xl" className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
@@ -144,7 +145,7 @@ export const AuditPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };
