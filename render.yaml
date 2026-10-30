@@ -18,3 +18,4 @@ services:
         value: sqlite:///./apaar_guard.db
       - key: CORS_ORIGINS
         value: https://*.vercel.app,http://localhost:5173
+

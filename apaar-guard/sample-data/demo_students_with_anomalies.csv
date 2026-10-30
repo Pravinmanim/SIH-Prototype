@@ -1,0 +1,9 @@
+apaar_id,roll_number,full_name,date_of_birth,gender,course_code,admission_year,email,phone,expected_anomaly
+12345678,2026-CSE-301,Kunal Verma,2005-03-12,Male,CSE,2026,kunal.v@apex.edu,9876543101,Invalid APAAR Length (8 digits instead of 12)
+1234ABCD5678,2026-CSE-302,Pooja Sharma,2005-09-21,Female,CSE,2026,pooja.s@apex.edu,9876543102,Non-numeric APAAR ID
+202610010001,2026-CSE-303,Deepak Rao,2005-01-18,Male,CSE,2026,deepak.r@apex.edu,9876543103,Duplicate APAAR ID (already exists in database)
+202610010099,2026-CSE-201,Simran Kaur,2005-06-15,Female,CSE,2026,simran.k@apex.edu,9876543104,Duplicate Roll Number in Same Institution
+202610010098,2026-CSE-305,Manish Joshi,,Male,CSE,2026,manish.j@apex.edu,9876543105,Missing Required Date of Birth
+202610010097,2026-CSE-306,Ankit Tiwari,2005-11-04,Male,CSE,2026,ankit.t@apex.edu,98765INVALID,Invalid Phone Number Formatting
+202610010096,2026-INVALID-CODE,Ritu Nair,2005-04-20,Female,XYZ_UNKNOWN,2026,ritu.n@apex.edu,9876543107,Unknown Course Code
+202610010095,2026-CSE-308,Gaurav Malhotra,2005-08-14,Male,CSE,2026,gaurav.m_invalid_email,9876543108,Malformed Email Address

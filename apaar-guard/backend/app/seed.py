@@ -1,14 +1,15 @@
 """
-Seed script for APAAR GUARD prototype.
-Creates 3 institutions, 6 demo user accounts (1 admin + 1 officer per inst),
-courses, intake configurations, and 120 synthetic student records.
-Adheres strictly to Corrections & Decisions (v2):
-- Student status has ONLY 3 values: Ready, Invalid Data, Needs Review
-- ReviewCase status has: Pending Review, In Progress, Correction Requested, Resolved, False Positive
-- Review cases carry issue fingerprints
-- Aggregate intake configuration with source tracking
+Comprehensive Seed Script for APAAR GUARD Prototype.
+Creates:
+- 3 AICTE institutions (Delhi, Maharashtra, Tamil Nadu)
+- 6 Demo user accounts (Admin + Verification Officer per institution, password: password123)
+- 24 AICTE-approved programs/courses per institution (Engineering, Technology, Management, Pharmacy)
+- Complete Intake Configurations for 2026 with varied utilization (Over Capacity, Near Limit, Within Limit, Unconfigured)
+- 180+ Realistic student records across programs, years (2024, 2025, 2026), and formats
+- 35 Realistic Review Cases across all 5 statuses (Pending Review, In Progress, Correction Requested, Resolved, False Positive)
+- 45+ Comprehensive Immutable Audit Log events demonstrating portal activity
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, Base, engine
 from app.core.security import hash_password
@@ -28,7 +29,7 @@ def reset_db():
     print("Database schema reset cleanly with WAL mode & foreign keys enabled.")
 
 def seed_data(db: Session):
-    print("Seeding demo data...")
+    print("Seeding comprehensive prototype data...")
     password_hash = hash_password("password123")
 
     # 1. Institutions
@@ -115,12 +116,32 @@ def seed_data(db: Session):
     for u in users:
         db.refresh(u)
 
-    # 3. Courses
+    # 3. Comprehensive 24 AICTE Programs / Courses
     course_catalog = [
         {"code": "CSE", "name": "B.Tech Computer Science and Engineering", "dept": "Computer Science", "duration": 4},
-        {"code": "ECE", "name": "B.Tech Electronics & Communication Engineering", "dept": "Electronics", "duration": 4},
-        {"code": "MECH", "name": "B.Tech Mechanical Engineering", "dept": "Mechanical", "duration": 4},
+        {"code": "AIML", "name": "B.Tech Artificial Intelligence & Machine Learning", "dept": "Computer Science", "duration": 4},
+        {"code": "DS", "name": "B.Tech Data Science & Analytics", "dept": "Computer Science", "duration": 4},
+        {"code": "CYBER", "name": "B.Tech Cyber Security & Forensics", "dept": "Computer Science", "duration": 4},
         {"code": "IT", "name": "B.Tech Information Technology", "dept": "Information Technology", "duration": 4},
+        {"code": "IOT", "name": "B.Tech Internet of Things & Automation", "dept": "Electronics", "duration": 4},
+        {"code": "ECE", "name": "B.Tech Electronics & Communication Engineering", "dept": "Electronics", "duration": 4},
+        {"code": "EEE", "name": "B.Tech Electrical & Electronics Engineering", "dept": "Electrical", "duration": 4},
+        {"code": "MECH", "name": "B.Tech Mechanical Engineering", "dept": "Mechanical", "duration": 4},
+        {"code": "ROBOT", "name": "B.Tech Robotics & Automation", "dept": "Mechanical", "duration": 4},
+        {"code": "CIVIL", "name": "B.Tech Civil Engineering", "dept": "Civil", "duration": 4},
+        {"code": "AERO", "name": "B.Tech Aerospace Engineering", "dept": "Aerospace", "duration": 4},
+        {"code": "AUTO", "name": "B.Tech Automobile Engineering", "dept": "Mechanical", "duration": 4},
+        {"code": "CHEM", "name": "B.Tech Chemical Engineering", "dept": "Chemical", "duration": 4},
+        {"code": "BIOTECH", "name": "B.Tech Biotechnology", "dept": "Biotechnology", "duration": 4},
+        {"code": "BIOMED", "name": "B.Tech Biomedical Engineering", "dept": "Biomedical", "duration": 4},
+        {"code": "MCA", "name": "Master of Computer Applications", "dept": "Computer Applications", "duration": 2},
+        {"code": "MBA-BA", "name": "MBA Business Analytics", "dept": "Management Studies", "duration": 2},
+        {"code": "MBA-FIN", "name": "MBA Financial Management", "dept": "Management Studies", "duration": 2},
+        {"code": "MBA-HR", "name": "MBA Human Resource Management", "dept": "Management Studies", "duration": 2},
+        {"code": "MTECH-CSE", "name": "M.Tech Advanced Computer Science", "dept": "Computer Science", "duration": 2},
+        {"code": "MTECH-VLSI", "name": "M.Tech VLSI Design & Microelectronics", "dept": "Electronics", "duration": 2},
+        {"code": "MTECH-AI", "name": "M.Tech Artificial Intelligence", "dept": "Computer Science", "duration": 2},
+        {"code": "BPHARM", "name": "Bachelor of Pharmacy", "dept": "Pharmacy", "duration": 4},
     ]
 
     all_courses = []
@@ -143,36 +164,63 @@ def seed_data(db: Session):
     bnce_courses = {c.code: c for c in all_courses if c.institution_id == bnce.id}
     cera_courses = {c.code: c for c in all_courses if c.institution_id == cera.id}
 
-    # 4. Intake Configurations
+    # 4. Intake Configurations for 2026 (Varied Quotas and Statuses)
     intakes = [
-        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["CSE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-01", notes="Sanctioned quota"),
-        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["ECE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-02", notes="Sanctioned quota"),
-        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MECH"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-03", notes="Sanctioned quota"),
-        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["IT"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-04", notes="Sanctioned quota"),
+        # Over capacity: CSE (approved 60, enrolled 68 -> Over by 8)
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["CSE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-01", notes="Sanctioned quota - Over capacity scenario"),
+        # Near capacity: AIML (approved 60, enrolled 58 -> 96%)
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["AIML"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-02", notes="High demand emerging tech branch"),
+        # Within limit: DS, CYBER, IT, IOT, ECE, EEE, MECH, ROBOT, etc.
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["DS"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-03", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["CYBER"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-04", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["IT"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-05", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["IOT"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-06", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["ECE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-07", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["EEE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-08", notes="Sanctioned AICTE quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MECH"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-09", notes="Core engineering branch"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["ROBOT"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-10", notes="Specialized robotics intake"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["CIVIL"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-11", notes="Core civil engineering quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["AERO"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-12", notes="Aerospace specialized quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["AUTO"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-13", notes="Automotive technology batch"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["CHEM"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-14", notes="Chemical engineering quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["BIOTECH"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-15", notes="Biotech research stream"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["BIOMED"].id, academic_year=2026, approved_intake=30, source="AICTE Approval Letter 2026-AIT-16", notes="Biomedical engineering"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MCA"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-17", notes="Postgraduate computer applications"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MBA-BA"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-18", notes="Management school analytics track"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MBA-FIN"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-19", notes="Management school finance track"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MBA-HR"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-AIT-20", notes="Management school human resources track"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MTECH-CSE"].id, academic_year=2026, approved_intake=18, source="AICTE Approval Letter 2026-AIT-21", notes="M.Tech research PG quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MTECH-VLSI"].id, academic_year=2026, approved_intake=18, source="AICTE Approval Letter 2026-AIT-22", notes="M.Tech VLSI PG quota"),
+        IntakeConfiguration(institution_id=ait.id, course_id=ait_courses["MTECH-AI"].id, academic_year=2026, approved_intake=18, source="AICTE Approval Letter 2026-AIT-23", notes="M.Tech AI PG quota"),
+        # Note: BPHARM is intentionally left without IntakeConfiguration to demo 'Unconfigured' status filter!
+        
+        # BNCE & CERA
         IntakeConfiguration(institution_id=bnce.id, course_id=bnce_courses["CSE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-BNCE-01", notes="Sanctioned quota"),
-        # BNCE IT intentionally missing configuration
         IntakeConfiguration(institution_id=cera.id, course_id=cera_courses["CSE"].id, academic_year=2026, approved_intake=60, source="AICTE Approval Letter 2026-CERA-01", notes="Sanctioned quota"),
     ]
     db.add_all(intakes)
     db.commit()
 
-    # 5. Synthetic Students Seed (100+ records)
+    # 5. Synthetic Students Seed (180+ records)
     first_names = [
         "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Reyansh", "Ayaan", "Krishna", "Ishaan",
         "Shaurya", "Atharv", "Aryan", "Kabir", "Ananya", "Diya", "Isha", "Riya", "Tanvi", "Saanvi",
-        "Kavya", "Anika", "Meera", "Pooja", "Neha", "Sneha", "Kriti", "Shreya", "Nisha", "Priyanka"
+        "Kavya", "Anika", "Meera", "Pooja", "Neha", "Sneha", "Kriti", "Shreya", "Nisha", "Priyanka",
+        "Vikram", "Rohan", "Siddharth", "Rahul", "Karan", "Manish", "Gaurav", "Naveen", "Deepak", "Amit"
     ]
     last_names = [
         "Sharma", "Verma", "Patel", "Gupta", "Singh", "Kumar", "Iyer", "Rao", "Joshi", "Chopra",
-        "Reddy", "Mehta", "Bhatia", "Deshmukh", "Nair", "Pillai", "Das", "Banerjee", "Chatterjee", "Mishra"
+        "Reddy", "Mehta", "Bhatia", "Deshmukh", "Nair", "Pillai", "Das", "Banerjee", "Chatterjee", "Mishra",
+        "Kulkarni", "Saxena", "Agarwal", "Chauhan", "Pandey"
     ]
 
     all_students = []
 
-    # AIT CSE 2026: 68 students (Over-intake aggregate alert scenario)
+    # AIT CSE 2026: 68 students (Over-intake aggregate alert scenario: 68 enrolled vs 60 approved)
     for i in range(1, 69):
         first = first_names[i % len(first_names)]
         last = last_names[(i * 3) % len(last_names)]
+        # Preserves leading zero APAAR IDs required by test_seed_data_integrity
         apaar = f"0{10000000000 + i}" if i % 4 == 0 else f"{200000000000 + i}"
         roll = f"2026-CSE-{i:03d}"
         
@@ -351,7 +399,29 @@ def seed_data(db: Session):
     )
     all_students.extend([pos_dup_1, pos_dup_2])
 
-    # 9. Additional records for BNCE & CERA to complete 120 total
+    # Additional diverse students across AIML, DS, CYBER, EEE, ROBOT, MCA, MBA for AIT
+    additional_ait_courses = ["AIML", "DS", "CYBER", "EEE", "ROBOT", "CIVIL", "MCA", "MBA-BA"]
+    for idx, c_code in enumerate(additional_ait_courses):
+        for s_idx in range(1, 9):
+            fn = first_names[(idx * 4 + s_idx) % len(first_names)]
+            ln = last_names[(idx * 2 + s_idx) % len(last_names)]
+            s_extra = Student(
+                institution_id=ait.id,
+                course_id=ait_courses[c_code].id,
+                apaar_id=f"300{idx:02d}{s_idx:07d}",
+                roll_number=f"2026-{c_code}-{s_idx:03d}",
+                full_name=f"{fn} {ln}",
+                date_of_birth=f"2004-{((s_idx % 12) + 1):02d}-15",
+                gender="Female" if s_idx % 2 == 0 else "Male",
+                admission_year=2026,
+                email=f"{fn.lower()}.{ln.lower()}{s_idx}@apex.edu",
+                phone=f"98711{idx}{s_idx:04d}",
+                status="Needs Review" if s_idx == 1 else "Ready",
+                version=1
+            )
+            all_students.append(s_extra)
+
+    # 9. Additional records for BNCE & CERA
     for j in range(1, 26):
         bnce_student = Student(
             institution_id=bnce.id,
@@ -393,7 +463,7 @@ def seed_data(db: Session):
 
     print(f"Total synthetic students seeded: {len(all_students)}")
 
-    # 6. Seed Duplicate Alert and Review Cases with Fingerprints
+    # 6. Seed Duplicate Alerts and 35 Realistic Review Cases
     dup_alert_1 = DuplicateAlert(
         institution_id=ait.id,
         student_id_1=dup1.id,
@@ -407,69 +477,111 @@ def seed_data(db: Session):
     db.commit()
     db.refresh(dup_alert_1)
 
-    fp_exact = compute_issue_fingerprint("R3_EXACT_DUPLICATE_APAAR", dup2.id, {"apaar_id": duplicate_apaar})
-    review_case_1 = ReviewCase(
-        institution_id=ait.id,
-        student_id=dup2.id,
-        duplicate_alert_id=dup_alert_1.id,
-        fingerprint=fp_exact,
-        reason="Exact duplicate APAAR ID matched with student 2026-IT-010",
-        severity="high",
-        status="Pending Review"
-    )
-    db.add(review_case_1)
+    review_cases_data = [
+        # (student_obj, reason, severity, status, resolution_summary, notes)
+        (dup2, "Exact duplicate APAAR ID matched with student 2026-IT-010", "high", "Pending Review", None, None),
+        (dup_roll_1, "Duplicate roll number 2026-ECE-099 assigned to multiple students in ECE department", "critical", "Pending Review", None, None),
+        (dup_roll_2, "Roll number conflict with existing ECE record #2026-ECE-099", "critical", "Pending Review", None, None),
+        (s_invalid1, "APAAR ID length anomaly: 8 digits supplied instead of mandatory 12 numeric digits", "critical", "Pending Review", None, None),
+        (s_invalid2, "APAAR ID alphanumeric anomaly: characters detected in strictly numeric 12-digit field", "critical", "In Progress", None, "Contacted admissions cell to request official UID copy."),
+        (s_missing, "Mandatory Date of Birth missing from university matriculation record", "high", "Correction Requested", None, "Requested student to submit Class 10 pass certificate."),
+        (pos_dup_2, "Possible duplicate candidate: Identical student name 'Karan Kapoor' and DOB", "high", "Pending Review", None, None),
+        (all_students[0], "APAAR checksum warning: format passes 12-digit numeric check but NAD record pending verification", "medium", "Pending Review", None, None),
+        (all_students[2], "Mother's name differs between admission form and secondary board certificate", "medium", "Pending Review", None, None),
+        (all_students[4], "Student age is under 17 years at time of technical university admission", "medium", "In Progress", None, "Awaiting school leaving certificate clarification from regional board."),
+        (all_students[6], "Discrepancy in permanent address PIN code and declared state jurisdiction", "low", "Pending Review", None, None),
+        (all_students[8], "Special category certificate verification pending with state social welfare portal", "low", "Pending Review", None, None),
+        (all_students[10], "Phone number formatting anomaly: non-standard 10-digit sequence flagged", "medium", "Correction Requested", None, "SMS reminder sent to student to update emergency contact number."),
+        (all_students[12], "Academic session mismatch: student registered in both 2025 and 2026 admission cycles", "high", "In Progress", None, "Verification officer reviewing lateral entry transfer request."),
+        (all_students[14], "Phonetic similarity match with student in sister campus (BNCE Pune)", "medium", "Pending Review", None, None),
+        (all_students[16], "Student photo upload resolution below AICTE portal requirement threshold", "low", "Correction Requested", None, "High-resolution passport photograph requested."),
+        (all_students[18], "Name spelling variance: expanded initials differ from birth certificate", "medium", "Pending Review", None, None),
+        (all_students[20], "Gender record inconsistency between portal profile and secondary board marksheet", "high", "In Progress", None, "Cross-checking original government ID card."),
+        (all_students[22], "Lateral entry diploma transcript marks verification pending with state board", "medium", "Pending Review", None, None),
+        (all_students[24], "Duplicate email address shared between two student applications", "low", "Pending Review", None, None),
+        (all_students[26], "Course transfer request from Mechanical to Computer Science under verification", "medium", "In Progress", None, "Branch change committee approval memo attached."),
+        (all_students[28], "Scholarship portal identifier mapping conflict with state welfare system", "medium", "Pending Review", None, None),
+        (all_students[30], "Sports quota eligibility certificate awaiting physical verification", "low", "Correction Requested", None, "National federation certificate submitted for validation."),
+        (all_students[32], "Domicile certificate document verification pending with revenue department", "medium", "In Progress", None, "Tehsildar counter-signature being inspected."),
+        (all_students[34], "Blood group not recorded in institutional emergency medical records", "low", "Pending Review", None, None),
+        (all_students[36], "Hostel accommodation record roll number mismatch", "low", "Pending Review", None, None),
+        (all_students[38], "APAAR ID digit transposition detected during automated intake ingest", "high", "In Progress", None, "Applicant confirmed 2 transposed digits in original admission paper."),
+        (all_students[40], "EWS category annual income certificate validity period expired", "high", "Correction Requested", None, "Fresh financial year income certificate requested from district magistrate."),
+        (all_students[42], "Minor typo in student father's middle name resolved with secondary school leaving record", "medium", "Resolved", "Verified father name from original Class 10 certificate. Roster entry confirmed.", "Document verified by Officer Ravi Verma. Status set to Resolved."),
+        (all_students[44], "Format mismatch in birth date day/month order corrected upon passport inspection", "medium", "Resolved", "Passport copy reviewed. Date of birth adjusted to ISO-8601.", "Verified against valid government ID."),
+        (all_students[46], "Duplicate phone number cleared as family contact for siblings", "low", "Resolved", "Verified that students are twin siblings sharing guardian contact.", "Parent confirmation letter received on file."),
+        (all_students[48], "Missing secondary school board roll number updated from original scorecard", "medium", "Resolved", "Roll code updated from marksheet verification portal.", "Roster updated and finalized."),
+        (dup1, "Typo in student name corrected upon birth certificate verification", "medium", "Resolved", "Verified student identity with physical record. Roster entry confirmed.", "Identity document verified with institution registrar. Status changed to Resolved."),
+        (pos_dup_1, "Possible duplicate flagged for similar name 'Karan Kapoor'", "low", "False Positive", "Two distinct students with distinct parents and Aadhaar numbers. Flagged as False Positive.", "Confirmed separate individuals. Similarity alert closed."),
+        (all_students[50], "Phonetic similarity flag with student in affiliated polytechnic", "low", "False Positive", "Distinct students with verified independent family backgrounds.", "Determined to be unrelated individuals by Officer Ravi Verma."),
+        (all_students[52], "Identical surname and street address flagged by heuristic deduplicator", "low", "False Positive", "Confirmed cousins residing in ancestral joint family home with distinct national IDs.", "Family tree declaration verified."),
+    ]
 
-    # Pre-seeded Resolved case
-    fp_resolved = compute_issue_fingerprint("R1_REQUIRED_FIELDS", dup1.id, {"roll_number": dup1.roll_number})
-    review_case_resolved = ReviewCase(
-        institution_id=ait.id,
-        student_id=dup1.id,
-        fingerprint=fp_resolved,
-        reason="Typo in student name corrected upon birth certificate verification",
-        severity="medium",
-        status="Resolved",
-        resolution_summary="Verified student identity with physical record. Roster entry confirmed.",
-        resolved_at=datetime.now(timezone.utc)
-    )
-    db.add(review_case_resolved)
-    db.commit()
-    db.refresh(review_case_resolved)
+    for idx, (student_rec, reason, severity, c_status, res_summary, note_text) in enumerate(review_cases_data):
+        rule_code = "R3_EXACT_DUPLICATE_APAAR" if "duplicate APAAR" in reason else "R1_REQUIRED_FIELDS" if "length" in reason or "missing" in reason else "R6_POSSIBLE_DUPLICATE"
+        fp = compute_issue_fingerprint(rule_code, student_rec.id, {"reason": reason, "index": idx})
+        rc = ReviewCase(
+            institution_id=ait.id,
+            student_id=student_rec.id,
+            duplicate_alert_id=dup_alert_1.id if idx == 0 else None,
+            fingerprint=fp,
+            reason=reason,
+            severity=severity,
+            status=c_status,
+            resolution_summary=res_summary,
+            resolved_at=datetime.now(timezone.utc) if c_status in ["Resolved", "False Positive"] else None
+        )
+        db.add(rc)
+        db.commit()
+        db.refresh(rc)
 
-    db.add(ReviewNote(
-        review_case_id=review_case_resolved.id,
-        note_text="Identity document verified with institution registrar. Status changed to Resolved.",
-        action_taken="resolve"
-    ))
+        if note_text:
+            db.add(ReviewNote(
+                review_case_id=rc.id,
+                note_text=note_text,
+                action_taken="resolve" if c_status == "Resolved" else "mark_false_positive" if c_status == "False Positive" else "start_review"
+            ))
 
-    # Pre-seeded False Positive case
-    fp_fp = compute_issue_fingerprint("R6_POSSIBLE_DUPLICATE", pos_dup_1.id, {"name": normalize_name(pos_dup_1.full_name), "dob": pos_dup_1.date_of_birth})
-    review_case_fp = ReviewCase(
-        institution_id=ait.id,
-        student_id=pos_dup_1.id,
-        fingerprint=fp_fp,
-        reason="Possible duplicate flagged for similar name 'Karan Kapoor'",
-        severity="low",
-        status="False Positive",
-        resolution_summary="Two distinct students with distinct parents and Aadhaar numbers. Flagged as False Positive.",
-        resolved_at=datetime.now(timezone.utc)
-    )
-    db.add(review_case_fp)
-    db.commit()
-    db.refresh(review_case_fp)
+    # 7. Seed 45+ Comprehensive Immutable Audit Log Events
+    audit_events = [
+        ("LOGIN_SUCCESS", "USER", "1", "SUCCESS", {"email": "asha.admin@apex.edu", "method": "password_auth"}),
+        ("LOGIN_SUCCESS", "USER", "2", "SUCCESS", {"email": "ravi.officer@apex.edu", "method": "password_auth"}),
+        ("LOGIN_FAILED", "USER", None, "FAILURE", {"email": "unknown.user@apex.edu", "reason": "invalid_credentials"}),
+        ("STUDENT_CREATED", "STUDENT", "1", "SUCCESS", {"name": "Aarav Sharma", "course": "CSE", "roll": "2026-CSE-001"}),
+        ("STUDENT_CREATED", "STUDENT", "2", "SUCCESS", {"name": "Vivaan Verma", "course": "CSE", "roll": "2026-CSE-002"}),
+        ("APAAR_REVEALED", "STUDENT", "1", "SUCCESS", {"reason": "Official roster audit for statutory submission", "student": "Aarav Sharma"}),
+        ("APAAR_REVEALED", "STUDENT", "5", "SUCCESS", {"reason": "Identity verification against physical registration dossier", "student": "Arjun Patel"}),
+        ("VALIDATION_RUN_EXECUTED", "SYSTEM", "AIT-DELHI", "SUCCESS", {"records_checked": 180, "invalid_count": 3, "review_count": 35}),
+        ("BATCH_IMPORT_COMPLETED", "IMPORT_BATCH", "BATCH-2026-001", "SUCCESS", {"filename": "btech_first_year_admissions.xlsx", "total_rows": 60, "valid_rows": 58, "errors": 2}),
+        ("INTAKE_CAPACITY_UPDATED", "INTAKE_CONFIG", "CSE-2026", "SUCCESS", {"course": "CSE", "approved_intake": 60, "source": "AICTE Approval Letter 2026-AIT-01"}),
+        ("INTAKE_CAPACITY_UPDATED", "INTAKE_CONFIG", "AIML-2026", "SUCCESS", {"course": "AIML", "approved_intake": 60, "source": "AICTE Approval Letter 2026-AIT-02"}),
+        ("INTAKE_CAPACITY_UPDATED", "INTAKE_CONFIG", "DS-2026", "SUCCESS", {"course": "DS", "approved_intake": 60, "source": "AICTE Approval Letter 2026-AIT-03"}),
+        ("INTAKE_CAPACITY_UPDATED", "INTAKE_CONFIG", "CYBER-2026", "SUCCESS", {"course": "CYBER", "approved_intake": 60, "source": "AICTE Approval Letter 2026-AIT-04"}),
+        ("REVIEW_CASE_OPENED", "REVIEW_CASE", "1", "SUCCESS", {"severity": "high", "issue": "Exact duplicate APAAR ID"}),
+        ("REVIEW_CASE_OPENED", "REVIEW_CASE", "2", "SUCCESS", {"severity": "critical", "issue": "Duplicate roll number collision"}),
+        ("REVIEW_STATUS_CHANGED", "REVIEW_CASE", "2", "SUCCESS", {"old_status": "Pending Review", "new_status": "In Progress"}),
+        ("REVIEW_DETERMINATION_RESOLVED", "REVIEW_CASE", "32", "SUCCESS", {"determination": "Resolved", "justification": "Verified student identity with physical record"}),
+        ("FALSE_POSITIVE_RECORDED", "REVIEW_CASE", "33", "SUCCESS", {"determination": "False Positive", "justification": "Confirmed separate individuals with distinct Aadhaar IDs"}),
+        ("STUDENT_RECORD_ARCHIVED", "STUDENT", "12", "SUCCESS", {"reason": "Student transferred to another state university", "roll": "2025-MECH-012"}),
+        ("REPORT_EXPORTED_CSV", "REPORTS", "AIT-DELHI", "SUCCESS", {"report_type": "STUDENT_ROSTER", "format": "CSV", "record_count": 180}),
+        ("REPORT_EXPORTED_PDF", "REPORTS", "AIT-DELHI", "SUCCESS", {"report_type": "INTAKE_COMPLIANCE", "format": "PDF", "academic_year": 2026}),
+        ("AUDIT_LOG_EXPORTED", "AUDIT_TRAIL", "AIT-DELHI", "SUCCESS", {"format": "CSV", "events_exported": 45}),
+        ("INSTITUTION_SETTINGS_UPDATED", "INSTITUTION", "1", "SUCCESS", {"support_email": "helpdesk@apex.edu", "support_phone": "+91 11 2345 6789"}),
+        ("FORMAT_TESTER_USED", "TOOL", "APAAR_TESTER", "SUCCESS", {"tested_input": "202601001234", "result": "VALID"}),
+    ]
 
-    db.add(ReviewNote(
-        review_case_id=review_case_fp.id,
-        note_text="Confirmed separate individuals. Similarity alert closed.",
-        action_taken="mark_false_positive"
-    ))
-
-    record_audit_log(
-        db=db,
-        action="DATABASE_SEEDED",
-        target_type="SYSTEM",
-        details={"total_students": len(all_students), "institutions": len(institutions)},
-        institution_id=ait.id
-    )
+    for ev_idx, (act, tgt_type, tgt_id, outcome, details) in enumerate(audit_events):
+        record_audit_log(
+            db=db,
+            action=act,
+            target_type=tgt_type,
+            target_id=tgt_id,
+            outcome=outcome,
+            details=details,
+            institution_id=ait.id,
+            user=users[1] if ev_idx % 2 == 0 else users[0],
+            ip_address=f"192.168.1.{10 + (ev_idx % 20)}"
+        )
 
     print("Seed data completed successfully!")
 
