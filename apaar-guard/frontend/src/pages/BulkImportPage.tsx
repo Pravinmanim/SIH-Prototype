@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useTranslation } from '../i18n/LanguageContext';
 
 const STANDARD_FIELDS = [
   { key: 'roll_number', label: 'Roll Number', required: true },
@@ -28,6 +29,7 @@ const STANDARD_FIELDS = [
 
 export const BulkImportPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Step 1: Upload
@@ -131,19 +133,19 @@ export const BulkImportPage: React.FC = () => {
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header & Steps Indicator */}
       <div>
-        <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Bulk Student Import Wizard</h1>
+        <h1 className="text-2xl font-bold text-[#172033] tracking-tight">{t('import_title', 'Bulk Student Import Wizard')}</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Safely ingest, map, validate, and commit institutional student batches.
+          {t('import_subtitle', 'Safely ingest, map, validate, and commit institutional student batches.')}
         </p>
 
         {/* Wizard Steps Nav */}
         <div className="mt-6 flex items-center justify-between border-b border-slate-200 pb-4">
           {[
-            { num: 1, title: 'Upload File' },
-            { num: 2, title: 'Column Mapping' },
-            { num: 3, title: 'Pre-Commit Validation' },
-            { num: 4, title: 'Import Options' },
-            { num: 5, title: 'Results & Audit' },
+            { num: 1, title: t('import_step1', 'Upload File') },
+            { num: 2, title: t('import_step2', 'Column Mapping') },
+            { num: 3, title: t('import_step3', 'Pre-Commit Validation') },
+            { num: 4, title: t('import_step4', 'Import Options') },
+            { num: 5, title: t('import_step5', 'Results & Audit') },
           ].map((s) => (
             <div key={s.num} className="flex items-center space-x-2 text-xs sm:text-sm font-medium">
               <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold ${
@@ -176,9 +178,9 @@ export const BulkImportPage: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
           <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-8 text-center transition bg-slate-50/50">
             <UploadCloud className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-800">Select or Drag CSV / XLSX File</h3>
+            <h3 className="text-base font-bold text-slate-800">{t('import_drag_title', 'Select or Drag CSV / XLSX File')}</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Supported formats: .CSV, .XLSX (Max file size: 10 MB, up to 5,000 records).
+              {t('import_drag_sub', 'Supported formats: .CSV, .XLSX (Max file size: 10 MB, up to 5,000 records).')}
             </p>
 
             <input
@@ -193,7 +195,7 @@ export const BulkImportPage: React.FC = () => {
               className="mt-4 inline-flex items-center px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-sm font-semibold hover:bg-slate-50 shadow-xs cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4 mr-2 text-blue-600" />
-              {file ? file.name : 'Browse Files on Device'}
+              {file ? file.name : t('import_browse', 'Browse Files on Device')}
             </label>
 
             {file && (
@@ -207,10 +209,9 @@ export const BulkImportPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start space-x-3">
             <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold m-0">Verification & Privacy Notice</p>
+              <p className="font-semibold m-0">{t('import_notice_title', 'Verification & Privacy Notice')}</p>
               <p className="mt-1 text-amber-800 m-0 leading-relaxed">
-                Imported APAAR IDs are checked locally for 12-digit format and duplicates.
-                Local import and validation do not constitute official DigiLocker or UIDAI verification.
+                {t('import_notice_desc', 'Imported APAAR IDs are checked locally for 12-digit format and duplicates. Local import and validation do not constitute official DigiLocker or UIDAI verification.')}
               </p>
             </div>
           </div>
@@ -219,7 +220,7 @@ export const BulkImportPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-200 gap-4">
             <div className="flex items-center space-x-3">
               <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                Download Template:
+                {t('import_download_template', 'Download Template:')}
               </span>
               <a
                 href="/api/import/template?format=csv"
@@ -227,7 +228,7 @@ export const BulkImportPage: React.FC = () => {
                 className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800"
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
-                Template (CSV)
+                {t('import_template_csv', 'Template (CSV)')}
               </a>
               <span className="text-slate-300">|</span>
               <a
@@ -236,7 +237,7 @@ export const BulkImportPage: React.FC = () => {
                 className="inline-flex items-center text-xs font-medium text-blue-600 hover:text-blue-800"
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
-                Template (Excel XLSX)
+                {t('import_template_xlsx', 'Template (Excel XLSX)')}
               </a>
             </div>
 
@@ -248,11 +249,11 @@ export const BulkImportPage: React.FC = () => {
               {uploading ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Inspecting File...
+                  {t('import_btn_inspecting', 'Inspecting File...')}
                 </>
               ) : (
                 <>
-                  <span>Next: Column Mapping</span>
+                  <span>{t('import_btn_next_mapping', 'Next: Column Mapping')}</span>
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </>
               )}
@@ -266,13 +267,13 @@ export const BulkImportPage: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 m-0">Map File Columns to Student Fields</h2>
+              <h2 className="text-lg font-bold text-slate-900 m-0">{t('import_mapping_title', 'Map File Columns to Student Fields')}</h2>
               <p className="text-xs text-slate-500 mt-1">
                 Detected {fileInfo.headers.length} headers in '{fileInfo.filename}' ({fileInfo.total_rows} total rows).
               </p>
             </div>
             <span className="text-xs bg-blue-50 text-blue-800 font-semibold px-2.5 py-1 rounded-full border border-blue-200">
-              Auto-Mapping Applied
+              {t('import_auto_mapping', 'Auto-Mapping Applied')}
             </span>
           </div>
 
@@ -295,7 +296,7 @@ export const BulkImportPage: React.FC = () => {
                         : 'border-slate-300 bg-white text-slate-800'
                     }`}
                   >
-                    <option value="">-- Do Not Import --</option>
+                    <option value="">-- {t('import_do_not_import', 'Do Not Import')} --</option>
                     {fileInfo.headers.map((h: string) => (
                       <option key={h} value={h}>{h}</option>
                     ))}
@@ -308,7 +309,7 @@ export const BulkImportPage: React.FC = () => {
           {/* First 3 preview rows */}
           <div>
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-              Preview First Uploaded Records
+              {t('import_preview_records', 'Preview First Uploaded Records')}
             </h3>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full text-left text-xs">
@@ -335,17 +336,17 @@ export const BulkImportPage: React.FC = () => {
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={() => setStep(1)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
+              {t('btn_back', 'Back')}
             </button>
             <button
               onClick={handleValidateStaging}
               disabled={validating}
               className="inline-flex items-center px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
-              {validating ? 'Validating Batch...' : 'Next: Preview Validation Results'}
+              {validating ? t('import_btn_validating', 'Validating Batch...') : t('import_btn_preview', 'Next: Preview Validation Results')}
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           </div>
@@ -417,16 +418,16 @@ export const BulkImportPage: React.FC = () => {
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={() => setStep(2)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              Adjust Mapping
+              {t('btn_back', 'Back')}
             </button>
             <button
               onClick={() => setStep(4)}
               className="inline-flex items-center px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition cursor-pointer"
             >
-              <span>Next: Import Options</span>
+              <span>{t('import_btn_options', 'Next: Import Options')}</span>
               <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           </div>
@@ -437,9 +438,9 @@ export const BulkImportPage: React.FC = () => {
       {step === 4 && (
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200/80 shadow-sm space-y-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 m-0">Configure Ingestion Options</h2>
+            <h2 className="text-lg font-bold text-slate-900 m-0">{t('import_opt_heading', 'Configure Ingestion Options')}</h2>
             <p className="text-xs text-slate-500 mt-1">
-              Select how duplicate and invalid rows should be handled by the database transaction.
+              {t('import_opt_sub', 'Select how duplicate and invalid rows should be handled by the database transaction.')}
             </p>
           </div>
 
@@ -455,10 +456,10 @@ export const BulkImportPage: React.FC = () => {
               />
               <div>
                 <label htmlFor="skip-dup" className="text-sm font-bold text-slate-800 block cursor-pointer">
-                  Skip Duplicates Safely (Recommended)
+                  {t('import_opt_skip_dup', 'Skip Duplicates Safely (Recommended)')}
                 </label>
                 <p className="text-xs text-slate-500 mt-0.5 m-0">
-                  Any record matching an existing APAAR ID or roll number will be skipped and logged without raising fatal transaction aborts.
+                  {t('import_opt_skip_dup_desc', 'Any record matching an existing APAAR ID or roll number will be skipped and logged without raising fatal transaction aborts.')}
                 </p>
               </div>
             </div>
@@ -478,10 +479,10 @@ export const BulkImportPage: React.FC = () => {
                 />
                 <div>
                   <label htmlFor="update-existing" className="text-sm font-bold text-amber-900 block cursor-pointer">
-                    Update Existing Records
+                    {t('import_opt_update', 'Update Existing Records')}
                   </label>
                   <p className="text-xs text-amber-800 mt-0.5 m-0">
-                    Never overwrites silently. Requires explicit institutional authorization.
+                    {t('import_opt_update_desc', 'Never overwrites silently. Requires explicit institutional authorization.')}
                   </p>
                 </div>
               </div>
@@ -489,7 +490,7 @@ export const BulkImportPage: React.FC = () => {
               {updateExisting && (
                 <div className="ml-7 mt-2 p-3 bg-white rounded-lg border border-amber-300 text-xs text-amber-900 space-y-3">
                   <div className="font-semibold text-amber-950">
-                    Before / After Differences Summary ({stagingData?.summary?.update_candidates?.length || 0} candidate records)
+                    {t('import_opt_diff_summary', 'Before / After Differences Summary')} ({stagingData?.summary?.update_candidates?.length || 0} candidate records)
                   </div>
 
                   {stagingData?.summary?.update_candidates && stagingData.summary.update_candidates.length > 0 ? (
@@ -497,9 +498,9 @@ export const BulkImportPage: React.FC = () => {
                       <table className="w-full text-left text-[11px]">
                         <thead className="bg-amber-100/70 text-amber-950 border-b border-amber-200">
                           <tr>
-                            <th className="px-2.5 py-1.5 font-semibold">Roll Number</th>
-                            <th className="px-2.5 py-1.5 font-semibold">Current Record (DB)</th>
-                            <th className="px-2.5 py-1.5 font-semibold">Import File Update</th>
+                            <th className="px-2.5 py-1.5 font-semibold">{t('col_roll_number', 'Roll Number')}</th>
+                            <th className="px-2.5 py-1.5 font-semibold">{t('import_current_record', 'Current Record (DB)')}</th>
+                            <th className="px-2.5 py-1.5 font-semibold">{t('import_file_update', 'Import File Update')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-amber-100 bg-white">
@@ -532,7 +533,7 @@ export const BulkImportPage: React.FC = () => {
                       className="h-4 w-4 text-blue-600 rounded cursor-pointer"
                     />
                     <label htmlFor="confirm-upd" className="font-semibold cursor-pointer">
-                      I have reviewed the differences above and explicitly authorize updating existing records.
+                      {t('import_opt_authorize', 'I have reviewed the differences above and explicitly authorize updating existing records.')}
                     </label>
                   </div>
                 </div>
@@ -543,10 +544,10 @@ export const BulkImportPage: React.FC = () => {
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
             <button
               onClick={() => setStep(3)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              Back
+              {t('btn_back', 'Back')}
             </button>
             <button
               onClick={handleCommit}
@@ -556,11 +557,11 @@ export const BulkImportPage: React.FC = () => {
               {committing ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Executing Transaction...
+                  {t('import_btn_committing', 'Executing Transaction...')}
                 </>
               ) : (
                 <>
-                  <span>Commit Import to Database</span>
+                  <span>{t('import_btn_commit', 'Commit Import to Database')}</span>
                   <Check className="w-4 h-4 ml-2" />
                 </>
               )}
@@ -577,7 +578,7 @@ export const BulkImportPage: React.FC = () => {
               <CheckCircle className="w-7 h-7" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 m-0">Bulk Import Completed</h2>
+              <h2 className="text-xl font-bold text-slate-900 m-0">{t('import_success_title', 'Bulk Import Completed')}</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Job ID: <span className="font-mono font-bold text-slate-700">{importResult.job_id}</span> • Completed at {new Date(importResult.completed_at).toLocaleTimeString()}
               </p>
@@ -587,23 +588,23 @@ export const BulkImportPage: React.FC = () => {
           {/* Summary Metric Counters */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-              <span className="text-xs text-slate-500 block">Total Processed</span>
+              <span className="text-xs text-slate-500 block">{t('import_total_processed', 'Total Processed')}</span>
               <span className="text-xl font-bold text-slate-900">{importResult.total_rows}</span>
             </div>
             <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
-              <span className="text-xs text-emerald-700 block">Created</span>
+              <span className="text-xs text-emerald-700 block">{t('created', 'Created')}</span>
               <span className="text-xl font-bold text-emerald-800">{importResult.created_rows}</span>
             </div>
             <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
-              <span className="text-xs text-blue-700 block">Updated</span>
+              <span className="text-xs text-blue-700 block">{t('updated', 'Updated')}</span>
               <span className="text-xl font-bold text-blue-800">{importResult.updated_rows}</span>
             </div>
             <div className="p-3.5 rounded-xl bg-slate-100 border border-slate-300">
-              <span className="text-xs text-slate-600 block">Skipped</span>
+              <span className="text-xs text-slate-600 block">{t('skipped', 'Skipped')}</span>
               <span className="text-xl font-bold text-slate-800">{importResult.skipped_rows}</span>
             </div>
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
-              <span className="text-xs text-rose-700 block">Invalid Rows</span>
+              <span className="text-xs text-rose-700 block">{t('invalid', 'Invalid Rows')}</span>
               <span className="text-xl font-bold text-rose-800">{importResult.invalid_rows}</span>
             </div>
           </div>
@@ -617,10 +618,10 @@ export const BulkImportPage: React.FC = () => {
                 className="inline-flex items-center text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-2 rounded-lg hover:bg-rose-100"
               >
                 <Download className="w-4 h-4 mr-1.5" />
-                Download Error Report (.CSV)
+                {t('import_download_errors', 'Download Error Report (.CSV)')}
               </a>
             ) : (
-              <span className="text-xs text-emerald-700 font-medium">All records ingested cleanly.</span>
+              <span className="text-xs text-emerald-700 font-medium">{t('import_all_clean', 'All records ingested cleanly.')}</span>
             )}
 
             <div className="flex items-center space-x-3">
@@ -630,15 +631,15 @@ export const BulkImportPage: React.FC = () => {
                   setFile(null);
                   setFileInfo(null);
                 }}
-                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
-                Import Another Batch
+                {t('import_another', 'Import Another Batch')}
               </button>
               <button
                 onClick={() => navigate('/students')}
-                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm"
+                className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm cursor-pointer"
               >
-                View Student Records
+                {t('import_view_students', 'View Student Records')}
               </button>
             </div>
           </div>

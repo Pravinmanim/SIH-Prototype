@@ -10,10 +10,12 @@ import {
   BarChart3
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useTranslation } from '../i18n/LanguageContext';
 import type { Course } from '../types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 
 export const ReportsPage: React.FC = () => {
+  const { t } = useTranslation();
   const [reportType, setReportType] = useState('student_summary');
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -29,32 +31,32 @@ export const ReportsPage: React.FC = () => {
   const reportOptions = [
     {
       id: 'student_summary',
-      title: 'Student Master Summary',
-      description: 'Comprehensive roster with roll numbers, courses, admission batches, and masked APAAR IDs.',
+      title: t('report_opt_students', 'Student Master Summary'),
+      description: t('report_opt_students_desc', 'Comprehensive roster with roll numbers, courses, admission batches, and masked APAAR IDs.'),
       icon: Users
     },
     {
       id: 'validation_issues',
-      title: 'Validation Issues & Error Log',
-      description: 'All local validation failures, missing fields, and rule violation descriptions across active records.',
+      title: t('report_opt_errors', 'Validation Issues & Error Log'),
+      description: t('report_opt_errors_desc', 'All local validation failures, missing fields, and rule violation descriptions across active records.'),
       icon: AlertTriangle
     },
     {
       id: 'duplicate_alerts',
-      title: 'Duplicate Identifiers Report',
-      description: 'Exact duplicate APAAR and roll collisions with matching fields and resolution audit details.',
+      title: t('report_opt_summary', 'Duplicate Identifiers Report'),
+      description: t('report_opt_summary_desc', 'Exact duplicate APAAR and roll collisions with matching fields and resolution audit details.'),
       icon: FileSpreadsheet
     },
     {
       id: 'intake_utilization',
-      title: 'Intake Capacity Audit',
-      description: 'Course-wise approved seat capacity versus actual enrollment and utilization metrics.',
+      title: t('report_opt_intake', 'Intake Capacity Audit'),
+      description: t('report_opt_intake_desc', 'Course-wise approved seat capacity versus actual enrollment and utilization metrics.'),
       icon: BarChart3
     },
     {
       id: 'review_activity',
-      title: 'Verification Activity History',
-      description: 'Timeline of officer decisions, notes, corrections requested, and case resolutions.',
+      title: t('dash_recent_audit', 'Verification Activity History'),
+      description: t('dash_audit_sub', 'Timeline of officer decisions, notes, corrections requested, and case resolutions.'),
       icon: History
     },
   ];
@@ -83,9 +85,9 @@ export const ReportsPage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Institutional Reports & Data Export</h1>
+        <h1 className="text-2xl font-bold text-[#172033] tracking-tight">{t('reports_title', 'Institutional Reports & Data Export')}</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Export transparent compliance, verification, and audit reports in standard CSV format.
+          {t('reports_sub', 'Export transparent compliance, verification, and audit reports in standard CSV format.')}
         </p>
       </div>
 
@@ -93,10 +95,9 @@ export const ReportsPage: React.FC = () => {
       <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-start space-x-3">
         <ShieldAlert className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold block">Privacy & Verification Standard</span>
+          <span className="font-semibold block">{t('official_notice_short', 'Privacy & Verification Standard')}</span>
           <p className="mt-0.5 text-blue-800 m-0 leading-relaxed">
-            All student summary exports preserve privacy by masking APAAR IDs (XXXX-XXXX-1234). 
-            Reports explicitly denote that local records are not officially verified by UIDAI/DigiLocker.
+            {t('official_notice', 'All student summary exports preserve privacy by masking APAAR IDs (XXXX-XXXX-1234). Reports explicitly denote that local records are not officially verified by UIDAI/DigiLocker.')}
           </p>
         </div>
       </div>
@@ -115,8 +116,8 @@ export const ReportsPage: React.FC = () => {
       <Card rounded="2xl" className="border border-slate-200/80 shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100">
           <div>
-            <CardTitle>1. Select Report Type</CardTitle>
-            <CardDescription>Choose the institutional dataset and compliance format to export</CardDescription>
+            <CardTitle>1. {t('report_type_title', 'Select Report Type')}</CardTitle>
+            <CardDescription>{t('report_type_desc', 'Choose the institutional dataset and compliance format to export')}</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="pt-4">
@@ -160,20 +161,20 @@ export const ReportsPage: React.FC = () => {
       <Card rounded="2xl" className="border border-slate-200/80 shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100">
           <div>
-            <CardTitle>2. Apply Optional Scope Filters</CardTitle>
-            <CardDescription>Filter exported records by course catalog, admission year, or validation status</CardDescription>
+            <CardTitle>2. {t('report_filters_title', 'Apply Optional Scope Filters')}</CardTitle>
+            <CardDescription>{t('report_filters_desc', 'Filter exported records by course catalog, admission year, or validation status')}</CardDescription>
           </div>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Course</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('col_course', 'Course')}</label>
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white font-medium"
               >
-                <option value="">All Courses</option>
+                <option value="">{t('filter_all_courses', 'All Courses')}</option>
                 {courses.map(c => (
                   <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
                 ))}
@@ -181,13 +182,13 @@ export const ReportsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Batch Year</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('col_year', 'Batch Year')}</label>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white font-medium"
               >
-                <option value="">All Admission Years</option>
+                <option value="">{t('filter_all_years', 'All Admission Years')}</option>
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
@@ -195,17 +196,17 @@ export const ReportsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Student Status</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">{t('col_status', 'Student Status')}</label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg outline-none bg-white font-medium"
               >
-                <option value="">All Statuses</option>
-                <option value="Ready">Ready</option>
-                <option value="Needs Review">Needs Review</option>
-                <option value="Invalid Data">Invalid Data</option>
-                <option value="Resolved">Resolved</option>
+                <option value="">{t('filter_all_status', 'All Statuses')}</option>
+                <option value="Ready">{t('status_ready', 'Ready')}</option>
+                <option value="Needs Review">{t('status_review', 'Needs Review')}</option>
+                <option value="Invalid Data">{t('status_invalid', 'Invalid Data')}</option>
+                <option value="Resolved">{t('tab_resolved', 'Resolved')}</option>
               </select>
             </div>
           </div>
@@ -218,7 +219,7 @@ export const ReportsPage: React.FC = () => {
               className="inline-flex items-center px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-xs transition disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <Download className="w-4 h-4 mr-2" />
-              {downloading ? 'Preparing Report...' : 'Download CSV Report'}
+              {downloading ? t('loading', 'Preparing Report...') : t('btn_export_csv', 'Download CSV Report')}
             </button>
           </div>
         </CardContent>

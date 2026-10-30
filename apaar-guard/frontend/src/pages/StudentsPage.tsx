@@ -19,6 +19,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../i18n/LanguageContext';
 import { api } from '../services/api';
 import type { StudentListItem, StudentDetail, Course, PaginatedStudents, StudentRevealResponse } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
@@ -51,6 +52,7 @@ type StudentFormData = z.infer<typeof studentSchema>;
 
 export const StudentsPage: React.FC = () => {
   const { isAdmin } = useAuth();
+  const { t } = useTranslation();
   
   // Data state
   const [students, setStudents] = useState<StudentListItem[]>([]);
@@ -246,9 +248,9 @@ export const StudentsPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Student Records</h1>
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">{t('students_title', 'Student Records')}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Browse, search, validate, and manage institutional student profiles.
+            {t('students_subtitle', 'Browse, search, validate, and manage institutional student profiles.')}
           </p>
         </div>
         {isAdmin && (
@@ -257,7 +259,7 @@ export const StudentsPage: React.FC = () => {
             className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Student Record
+            {t('students_btn_add', 'Add Student Record')}
           </button>
         )}
       </div>
@@ -273,7 +275,7 @@ export const StudentsPage: React.FC = () => {
             {feedback.type === 'success' ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <AlertTriangle className="w-5 h-5 text-rose-600" />}
             <span>{feedback.message}</span>
           </div>
-          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-600">
+          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -287,7 +289,7 @@ export const StudentsPage: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search by name, roll no, or APAAR..."
+              placeholder={t('students_search_placeholder', 'Search by name, roll no, or APAAR...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
@@ -301,7 +303,7 @@ export const StudentsPage: React.FC = () => {
               onChange={(e) => { setSelectedCourse(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none"
             >
-              <option value="">All Courses</option>
+              <option value="">{t('filter_all_courses', 'All Courses')}</option>
               {courses.map((c) => (
                 <option key={c.id} value={c.id.toString()}>{c.code} - {c.name}</option>
               ))}
@@ -315,7 +317,7 @@ export const StudentsPage: React.FC = () => {
               onChange={(e) => { setSelectedYear(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none"
             >
-              <option value="">All Admission Years</option>
+              <option value="">{t('filter_all_years', 'All Admission Years')}</option>
               <option value="2026">2026</option>
               <option value="2025">2025</option>
               <option value="2024">2024</option>
@@ -329,10 +331,10 @@ export const StudentsPage: React.FC = () => {
               onChange={(e) => { setSelectedStatus(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none"
             >
-              <option value="">All Statuses</option>
-              <option value="Ready">Ready</option>
-              <option value="Needs Review">Needs Review</option>
-              <option value="Invalid Data">Invalid Data</option>
+              <option value="">{t('filter_all_status', 'All Statuses')}</option>
+              <option value="Ready">{t('status_ready', 'Ready')}</option>
+              <option value="Needs Review">{t('status_review', 'Needs Review')}</option>
+              <option value="Invalid Data">{t('status_invalid', 'Invalid Data')}</option>
             </select>
           </div>
         </div>
@@ -340,13 +342,13 @@ export const StudentsPage: React.FC = () => {
         {/* Clear Filters indicator */}
         {(search || selectedCourse || selectedYear || selectedStatus) && (
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-            <span>Filtering records</span>
+            <span>{t('filter_active', 'Filtering records')}</span>
             <button
               onClick={clearFilters}
               className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              Reset Filters
+              {t('btn_reset', 'Reset Filters')}
             </button>
           </div>
         )}
@@ -358,26 +360,26 @@ export const StudentsPage: React.FC = () => {
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Roll Number</th>
-                <th className="px-5 py-3.5 font-semibold">Student Name</th>
-                <th className="px-5 py-3.5 font-semibold">APAAR ID (Masked)</th>
-                <th className="px-5 py-3.5 font-semibold">Course</th>
-                <th className="px-5 py-3.5 font-semibold">Year</th>
-                <th className="px-5 py-3.5 font-semibold">Local Status</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Actions</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_roll_number', 'Roll Number')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_full_name', 'Student Name')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_apaar_id', 'APAAR ID (Masked)')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_course', 'Course')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_year', 'Year')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_status', 'Local Status')}</th>
+                <th className="px-5 py-3.5 font-semibold text-right">{t('col_actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/80">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
-                    Loading institutional student records...
+                    {t('loading', 'Loading institutional student records...')}
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                    No student records matched your search or filters.
+                    {t('students_empty', 'No student records matched your search or filters.')}
                   </td>
                 </tr>
               ) : (
@@ -442,7 +444,7 @@ export const StudentsPage: React.FC = () => {
         {/* Pagination Bar */}
         <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-3">
           <div className="flex items-center space-x-2">
-            <span>Rows per page:</span>
+            <span>{t('rows_per_page', 'Rows per page')}:</span>
             <select
               value={pageSize}
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
@@ -452,22 +454,22 @@ export const StudentsPage: React.FC = () => {
               <option value={25}>25</option>
               <option value={50}>50</option>
             </select>
-            <span className="text-slate-400 ml-2">Total records: {total}</span>
+            <span className="text-slate-400 ml-2">{t('total_records', 'Total records')}: {total}</span>
           </div>
 
           <div className="flex items-center space-x-2">
-            <span>Page {page} of {totalPages}</span>
+            <span>{t('page_of', 'Page')} {page} of {totalPages}</span>
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="p-1.5 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition"
+              className="p-1.5 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition"
+              className="p-1.5 rounded border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -488,7 +490,7 @@ export const StudentsPage: React.FC = () => {
                   <StatusBadge status={selectedStudentDetail.status} />
                 </div>
                 <p className="text-sm text-slate-500 mt-1 font-mono">
-                  Roll No: {selectedStudentDetail.roll_number} • Year: {selectedStudentDetail.admission_year}
+                  {t('col_roll_number', 'Roll Number')}: {selectedStudentDetail.roll_number} • {t('col_year', 'Year')}: {selectedStudentDetail.admission_year}
                 </p>
               </div>
               <button onClick={() => setSelectedStudentDetail(null)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200">
@@ -500,9 +502,9 @@ export const StudentsPage: React.FC = () => {
             <div className="p-4 bg-amber-50 border-b border-amber-200/80 text-amber-900 text-xs flex items-start space-x-3">
               <ShieldAlert className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold m-0">{selectedStudentDetail.official_verification_notice}</p>
+                <p className="font-semibold m-0">{t('official_notice', selectedStudentDetail.official_verification_notice)}</p>
                 <p className="mt-1 text-amber-800 m-0">
-                  Local 12-digit format check and duplicate detection do not constitute official UIDAI or DigiLocker verification.
+                  {t('official_notice_short', 'Local 12-digit format check and duplicate detection do not constitute official UIDAI or DigiLocker verification.')}
                 </p>
               </div>
             </div>
@@ -511,14 +513,14 @@ export const StudentsPage: React.FC = () => {
             <div className="p-6 space-y-6 flex-1">
               {/* Profile Overview */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Academic & Personal Profile</h3>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">{t('drawer_student_profile', 'Academic & Personal Profile')}</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div>
-                    <span className="text-xs text-slate-500 block">Course</span>
+                    <span className="text-xs text-slate-500 block">{t('col_course', 'Course')}</span>
                     <span className="font-medium text-slate-800">{selectedStudentDetail.course?.name || selectedStudentDetail.course_name || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block">APAAR Identifier</span>
+                    <span className="text-xs text-slate-500 block">{t('col_apaar_id', 'APAAR Identifier')}</span>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="font-mono font-medium text-slate-800">
                         {revealedApaar !== null ? revealedApaar : selectedStudentDetail.masked_apaar_id}
@@ -531,7 +533,7 @@ export const StudentsPage: React.FC = () => {
                           title="View complete 12-digit APAAR ID (creates an immutable audit log entry)"
                         >
                           <Eye className="w-3 h-3" />
-                          {isRevealing ? 'Revealing...' : 'Reveal (Audited)'}
+                          {isRevealing ? t('loading', 'Revealing...') : t('drawer_reveal_apaar', 'Reveal (Audited)')}
                         </button>
                       )}
                     </div>
@@ -540,19 +542,19 @@ export const StudentsPage: React.FC = () => {
                     )}
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block">Date of Birth</span>
+                    <span className="text-xs text-slate-500 block">{t('field_dob', 'Date of Birth')}</span>
                     <span className="font-medium text-slate-800">{selectedStudentDetail.date_of_birth || 'Not Specified'}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block">Gender</span>
+                    <span className="text-xs text-slate-500 block">{t('field_gender', 'Gender')}</span>
                     <span className="font-medium text-slate-800">{selectedStudentDetail.gender || 'Not Specified'}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block">Email Address</span>
+                    <span className="text-xs text-slate-500 block">{t('field_email', 'Email Address')}</span>
                     <span className="font-medium text-slate-800">{selectedStudentDetail.email || 'None'}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-slate-500 block">Phone</span>
+                    <span className="text-xs text-slate-500 block">{t('field_phone', 'Phone')}</span>
                     <span className="font-medium text-slate-800">{selectedStudentDetail.phone || 'None'}</span>
                   </div>
                 </div>
@@ -561,7 +563,7 @@ export const StudentsPage: React.FC = () => {
               {/* Validation Results Checklist */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
-                  Local Validation Rule Results ({selectedStudentDetail.validation_results.length})
+                  {t('drawer_validation_rules', 'Local Validation Rule Results')} ({selectedStudentDetail.validation_results.length})
                 </h3>
                 <div className="space-y-2.5">
                   {selectedStudentDetail.validation_results.map((res) => {
@@ -610,9 +612,9 @@ export const StudentsPage: React.FC = () => {
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
               <button
                 onClick={() => setSelectedStudentDetail(null)}
-                className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium hover:bg-slate-300"
+                className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium hover:bg-slate-300 cursor-pointer"
               >
-                Close Drawer
+                {t('btn_close', 'Close Drawer')}
               </button>
             </div>
           </div>
@@ -626,7 +628,7 @@ export const StudentsPage: React.FC = () => {
           <div className="relative bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl z-10 border border-slate-200">
             <div className="flex items-center justify-between pb-4 border-b border-slate-200">
               <h2 className="text-lg font-bold text-slate-900 m-0">
-                {editingStudent ? 'Edit Student Record' : 'Add New Student Record'}
+                {editingStudent ? t('modal_edit_student', 'Edit Student Record') : t('modal_add_student', 'Add New Student Record')}
               </h2>
               <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="w-5 h-5" />
@@ -636,7 +638,7 @@ export const StudentsPage: React.FC = () => {
             <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-4 pt-4" noValidate>
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Roll Number"
+                  label={t('field_roll_number', 'Roll Number')}
                   isRequired
                   placeholder="e.g. 2026-CSE-001"
                   {...register('roll_number')}
@@ -644,7 +646,7 @@ export const StudentsPage: React.FC = () => {
                 />
 
                 <Input
-                  label="Admission Year"
+                  label={t('field_admission_year', 'Admission Year')}
                   type="number"
                   isRequired
                   min={2000}
@@ -655,19 +657,19 @@ export const StudentsPage: React.FC = () => {
               </div>
 
               <Input
-                label="Student Full Name"
+                label={t('field_full_name', 'Student Full Name')}
                 isRequired
-                placeholder="e.g. Ramesh Kumar / O'Connor / Jean-Luc"
+                placeholder="e.g. Ramesh Kumar"
                 {...register('full_name')}
                 error={errors.full_name?.message}
               />
 
               <Input
-                label="APAAR ID (12 Digits, optional)"
+                label={t('field_apaar_id', 'APAAR ID (12 Digits, optional)')}
                 type="text"
                 inputMode="numeric"
                 maxLength={12}
-                placeholder="e.g. 012345678901 (leading zero preserved)"
+                placeholder="e.g. 012345678901"
                 helperText="Stored as string to preserve leading zeros."
                 {...register('apaar_id', {
                   onChange: (e) => {
@@ -678,7 +680,7 @@ export const StudentsPage: React.FC = () => {
               />
 
               <Select
-                label="Course"
+                label={t('field_course', 'Course')}
                 isRequired
                 {...register('course_id', { valueAsNumber: true })}
                 error={errors.course_id?.message}
@@ -690,26 +692,26 @@ export const StudentsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Date of Birth"
+                  label={t('field_dob', 'Date of Birth')}
                   type="date"
                   {...register('date_of_birth')}
                   error={errors.date_of_birth?.message}
                 />
 
                 <Select
-                  label="Gender"
+                  label={t('field_gender', 'Gender')}
                   {...register('gender')}
                   error={errors.gender?.message}
                 >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
+                  <option value="Male">{t('gender_male', 'Male')}</option>
+                  <option value="Female">{t('gender_female', 'Female')}</option>
+                  <option value="Other">{t('gender_other', 'Other')}</option>
                 </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <Input
-                  label="Email Address"
+                  label={t('field_email', 'Email Address')}
                   type="email"
                   placeholder="student@institution.edu"
                   {...register('email')}
@@ -717,7 +719,7 @@ export const StudentsPage: React.FC = () => {
                 />
 
                 <Input
-                  label="Phone (Indian Mobile)"
+                  label={t('field_phone', 'Phone (Indian Mobile)')}
                   type="tel"
                   inputMode="numeric"
                   maxLength={10}
@@ -736,16 +738,16 @@ export const StudentsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                  className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
-                  Cancel
+                  {t('cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50"
+                  className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'Saving...' : editingStudent ? 'Update & Validate' : 'Create & Validate'}
+                  {isSubmitting ? t('saving', 'Saving...') : editingStudent ? t('btn_update_validate', 'Update & Validate') : t('btn_create_validate', 'Create & Validate')}
                 </button>
               </div>
             </form>
@@ -761,7 +763,7 @@ export const StudentsPage: React.FC = () => {
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900 m-0">Archive Student Record?</h2>
+            <h2 className="text-lg font-bold text-slate-900 m-0">{t('modal_archive_title', 'Archive Student Record?')}</h2>
             <p className="text-sm text-slate-600 mt-2">
               Are you sure you want to archive record for <span className="font-semibold text-slate-900">{archiveTarget.full_name}</span> (Roll: {archiveTarget.roll_number})?
               The student will be soft-archived from active lists and intake computations.
@@ -769,15 +771,15 @@ export const StudentsPage: React.FC = () => {
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setArchiveTarget(null)}
-                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
               >
-                Cancel
+                {t('cancel', 'Cancel')}
               </button>
               <button
                 onClick={handleArchiveConfirm}
-                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm"
+                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm cursor-pointer"
               >
-                Confirm Archive
+                {t('btn_confirm_archive', 'Confirm Archive')}
               </button>
             </div>
           </div>

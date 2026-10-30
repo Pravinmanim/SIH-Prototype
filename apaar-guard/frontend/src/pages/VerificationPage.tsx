@@ -7,6 +7,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useTranslation } from '../i18n/LanguageContext';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Card } from '../components/ui/Card';
 
@@ -35,6 +36,7 @@ const ALLOWED_BUTTONS: Record<string, { label: string; action: string; variant: 
 };
 
 export const VerificationPage: React.FC = () => {
+  const { t } = useTranslation();
   const [cases, setCases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -118,14 +120,14 @@ export const VerificationPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">Verification Centre & Human Review Queue</h1>
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">{t('verif_title', 'Verification Centre & Human Review Queue')}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Review flagged records, examine duplicate comparisons, and record official determinations.
+            {t('verif_sub', 'Review flagged records, examine duplicate comparisons, and record official determinations.')}
           </p>
         </div>
         <div className="flex items-center space-x-2 text-xs bg-amber-50 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-200">
           <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0" />
-          <span>Similarity alerts never imply fraud. Local human verification only.</span>
+          <span>{t('official_notice_short', 'Similarity alerts never imply fraud. Local human verification only.')}</span>
         </div>
       </div>
 
@@ -143,29 +145,36 @@ export const VerificationPage: React.FC = () => {
       {/* Filter Tabs & Severity Select */}
       <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center space-x-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs font-semibold">
-          {['ALL', 'Pending Review', 'In Progress', 'Correction Requested', 'Resolved', 'False Positive'].map((st) => (
+          {[
+            { id: 'ALL', label: t('tab_all', 'All Cases') },
+            { id: 'Pending Review', label: t('tab_pending', 'Pending Review') },
+            { id: 'In Progress', label: t('tab_in_progress', 'In Progress') },
+            { id: 'Correction Requested', label: t('tab_correction_req', 'Correction Requested') },
+            { id: 'Resolved', label: t('tab_resolved', 'Resolved Cases') },
+            { id: 'False Positive', label: t('dec_false_positive', 'False Positive') },
+          ].map((st) => (
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
+              key={st.id}
+              onClick={() => setStatusFilter(st.id)}
               className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer ${
-                statusFilter === st
+                statusFilter === st.id
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {st}
+              {st.label}
             </button>
           ))}
         </div>
 
         <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <span className="text-xs font-semibold text-slate-500">Severity:</span>
+          <span className="text-xs font-semibold text-slate-500">{t('filter_severity', 'Severity')}:</span>
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
             className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg outline-none bg-white font-medium text-slate-700"
           >
-            <option value="ALL">All Severities</option>
+            <option value="ALL">{t('filter_all', 'All Severities')}</option>
             <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
@@ -180,26 +189,26 @@ export const VerificationPage: React.FC = () => {
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Case ID</th>
-                <th className="px-5 py-3.5 font-semibold">Student / Roll</th>
-                <th className="px-5 py-3.5 font-semibold">Reason Flagged</th>
-                <th className="px-5 py-3.5 font-semibold">Severity</th>
-                <th className="px-5 py-3.5 font-semibold">Status</th>
-                <th className="px-5 py-3.5 font-semibold">Date Flagged</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Action</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_case_id', 'Case ID')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_student_roll', 'Student / Roll')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_reason_flagged', 'Reason Flagged')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_severity', 'Severity')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_status', 'Status')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_date_flagged', 'Date Flagged')}</th>
+                <th className="px-5 py-3.5 font-semibold text-right">{t('col_actions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/80">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-xs">
-                    Loading verification queue...
+                    {t('loading', 'Loading verification queue...')}
                   </td>
                 </tr>
               ) : cases.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-500 text-xs">
-                    No cases match the selected filter. Queue is clear.
+                    {t('verif_empty_pending', 'No review cases currently pending determination.')}
                   </td>
                 </tr>
               ) : (
@@ -264,7 +273,7 @@ export const VerificationPage: React.FC = () => {
                 <div className="flex items-start justify-between pb-4 border-b border-slate-200">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <h2 className="text-lg font-bold text-slate-900 m-0">Case #{caseDetail.case.id}: Review & Determination</h2>
+                      <h2 className="text-lg font-bold text-slate-900 m-0">Case #{caseDetail.case.id}: {t('verif_modal_title', 'Review & Determination')}</h2>
                       <StatusBadge status={caseDetail.case.status} />
                     </div>
                     <p className="text-xs text-slate-500 mt-1 font-mono">
@@ -280,7 +289,7 @@ export const VerificationPage: React.FC = () => {
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start space-x-2.5">
                   <ShieldAlert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-semibold">{caseDetail.boundary_notice}</span>
+                    <span className="font-semibold">{t('official_notice', caseDetail.boundary_notice)}</span>
                     <p className="text-[11px] text-amber-800 mt-0.5 m-0">
                       Decisions recorded here are logged permanently into the institutional audit ledger.
                     </p>
@@ -297,36 +306,36 @@ export const VerificationPage: React.FC = () => {
                 {/* Side-by-Side Comparison if Peer Student exists */}
                 {caseDetail.peer_student ? (
                   <div>
-                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Side-by-Side Record Comparison</h3>
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">{t('verif_side_by_side', 'Side-by-Side Record Comparison')}</h3>
                     <div className="grid grid-cols-2 gap-4">
                       {/* Record A */}
                       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                        <span className="font-bold text-slate-800 block text-xs">Record A (Current Student)</span>
+                        <span className="font-bold text-slate-800 block text-xs">{t('verif_record_a', 'Record A (Current Student)')}</span>
                         <div className="space-y-1.5 text-xs">
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Full Name</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_full_name', 'Full Name')}</span>
                             <span className={`font-semibold ${caseDetail.matching_fields.includes('full_name') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.student?.full_name}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Roll Number</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_roll_number', 'Roll Number')}</span>
                             <span className={`font-mono ${caseDetail.matching_fields.includes('roll_number') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.student?.roll_number}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Masked APAAR ID</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_apaar_id', 'Masked APAAR ID')}</span>
                             <span className={`font-mono ${caseDetail.matching_fields.includes('apaar_id') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.student?.masked_apaar_id}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Course & Admission Year</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_course', 'Course')} & {t('col_year', 'Year')}</span>
                             <span className="text-slate-800">{caseDetail.student?.course_name} ({caseDetail.student?.admission_year})</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Date of Birth</span>
+                            <span className="text-slate-400 block text-[11px]">{t('field_dob', 'Date of Birth')}</span>
                             <span className={`font-semibold ${caseDetail.matching_fields.includes('date_of_birth') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.student?.date_of_birth || 'Not Specified'}
                             </span>
@@ -336,32 +345,32 @@ export const VerificationPage: React.FC = () => {
 
                       {/* Record B */}
                       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                        <span className="font-bold text-slate-800 block text-xs">Record B (Matched Candidate)</span>
+                        <span className="font-bold text-slate-800 block text-xs">{t('verif_record_b', 'Record B (Matched Candidate)')}</span>
                         <div className="space-y-1.5 text-xs">
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Full Name</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_full_name', 'Full Name')}</span>
                             <span className={`font-semibold ${caseDetail.matching_fields.includes('full_name') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.peer_student?.full_name}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Roll Number</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_roll_number', 'Roll Number')}</span>
                             <span className={`font-mono ${caseDetail.matching_fields.includes('roll_number') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.peer_student?.roll_number}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Masked APAAR ID</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_apaar_id', 'Masked APAAR ID')}</span>
                             <span className={`font-mono ${caseDetail.matching_fields.includes('apaar_id') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.peer_student?.masked_apaar_id}
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Course & Admission Year</span>
+                            <span className="text-slate-400 block text-[11px]">{t('col_course', 'Course')} & {t('col_year', 'Year')}</span>
                             <span className="text-slate-800">{caseDetail.peer_student?.course_name} ({caseDetail.peer_student?.admission_year})</span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[11px]">Date of Birth</span>
+                            <span className="text-slate-400 block text-[11px]">{t('field_dob', 'Date of Birth')}</span>
                             <span className={`font-semibold ${caseDetail.matching_fields.includes('date_of_birth') ? 'bg-amber-100 text-amber-900 px-1 rounded' : 'text-slate-800'}`}>
                               {caseDetail.peer_student?.date_of_birth || 'Not Specified'}
                             </span>
@@ -373,7 +382,7 @@ export const VerificationPage: React.FC = () => {
                 ) : (
                   /* Single record flagged detail */
                   <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                    <span className="font-bold text-slate-700 block uppercase tracking-wider">Target Student Profile</span>
+                    <span className="font-bold text-slate-700 block uppercase tracking-wider">{t('drawer_student_profile', 'Target Student Profile')}</span>
                     <div className="grid grid-cols-2 gap-3 text-slate-800">
                       <div>Name: <span className="font-semibold">{caseDetail.student?.full_name}</span></div>
                       <div>Roll: <span className="font-mono font-semibold">{caseDetail.student?.roll_number}</span></div>
@@ -385,7 +394,7 @@ export const VerificationPage: React.FC = () => {
 
                 {/* Audit & Officer Notes Timeline */}
                 <div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Review Notes Timeline</h3>
+                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">{t('verif_notes_timeline', 'Review Notes Timeline')}</h3>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                     {caseDetail.notes.length === 0 ? (
                       <p className="text-xs text-slate-400 italic">No notes added yet.</p>
@@ -414,7 +423,7 @@ export const VerificationPage: React.FC = () => {
 
                   <div>
                     <label htmlFor="case-action-reason" className="block text-xs font-bold text-slate-700 mb-1">
-                      Action Reason / Written Justification (Mandatory for Resolve / False Positive)
+                      {t('verif_action_reason', 'Action Reason / Written Justification (Mandatory for Resolve / False Positive)')}
                     </label>
                     <textarea
                       id="case-action-reason"
@@ -440,9 +449,9 @@ export const VerificationPage: React.FC = () => {
                       type="button"
                       disabled={submittingAction || !actionNote.trim()}
                       onClick={() => executeAction('add_note')}
-                      className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-700 disabled:opacity-50 cursor-pointer"
                     >
-                      Add Note Only
+                      {t('btn_add_note_only', 'Add Note Only')}
                     </button>
 
                     <div className="flex flex-wrap items-center gap-2">

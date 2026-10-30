@@ -17,6 +17,7 @@ import {
   Target
 } from 'lucide-react';
 import { api } from '../services/api';
+import { useTranslation } from '../i18n/LanguageContext';
 import { Card } from '../components/ui/Card';
 
 interface AuditLogItem {
@@ -41,6 +42,7 @@ interface AuditApiResponse {
 }
 
 export const AuditPage: React.FC = () => {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -139,9 +141,9 @@ export const AuditPage: React.FC = () => {
       {/* Page Title & Overview */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">System Audit Trail</h1>
+          <h1 className="text-2xl font-bold text-[#172033] tracking-tight">{t('audit_title', 'System Audit Trail')}</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Immutable, read-only institutional event ledger tracking all student mutations, reviews, and exports.
+            {t('audit_sub', 'Immutable, read-only institutional event ledger tracking all student mutations, reviews, and exports.')}
           </p>
         </div>
       </div>
@@ -150,10 +152,9 @@ export const AuditPage: React.FC = () => {
       <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs flex items-start space-x-3">
         <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
         <div>
-          <span className="font-semibold block text-blue-950">Audit Integrity & Privacy Guarantee</span>
+          <span className="font-semibold block text-blue-950">{t('official_notice_short', 'Audit Integrity & Privacy Guarantee')}</span>
           <p className="mt-0.5 text-blue-800 m-0 leading-relaxed">
-            Audit logs cannot be altered, purged, or deleted through any portal interface. In adherence to privacy guidelines, 
-            passwords, session secrets, and unmasked APAAR IDs are strictly stripped from all logged metadata.
+            {t('official_notice', 'Audit logs cannot be altered, purged, or deleted through any portal interface. In adherence to privacy guidelines, passwords, session secrets, and unmasked APAAR IDs are strictly stripped from all logged metadata.')}
           </p>
         </div>
       </div>
@@ -168,7 +169,7 @@ export const AuditPage: React.FC = () => {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by actor, action, target, or details..."
+              placeholder={t('search', 'Search by actor, action, target, or details...')}
               className="w-full pl-10 pr-4 py-2 text-xs border border-slate-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
             />
           </div>
@@ -183,7 +184,7 @@ export const AuditPage: React.FC = () => {
               }}
               className="text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none bg-white font-medium text-slate-700 hover:border-slate-400 transition"
             >
-              <option value="">All Actions</option>
+              <option value="">{t('filter_all', 'All Actions')}</option>
               {distinctActions.map(a => (
                 <option key={a} value={a}>{a}</option>
               ))}
@@ -198,7 +199,7 @@ export const AuditPage: React.FC = () => {
               }}
               className="text-xs px-3 py-2 border border-slate-300 rounded-xl outline-none bg-white font-medium text-slate-700 hover:border-slate-400 transition"
             >
-              <option value="">All Outcomes</option>
+              <option value="">{t('col_outcome', 'All Outcomes')}</option>
               <option value="SUCCESS">SUCCESS Only</option>
               <option value="FAILURE">FAILURE Only</option>
             </select>
@@ -210,7 +211,7 @@ export const AuditPage: React.FC = () => {
                 className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-800 px-2 py-1.5 rounded-lg hover:bg-blue-50 transition cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                Reset
+                {t('btn_reset', 'Reset')}
               </button>
             )}
           </div>
@@ -223,27 +224,27 @@ export const AuditPage: React.FC = () => {
           <table className="w-full text-left text-sm text-slate-700">
             <thead className="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-5 py-3.5 font-semibold">Event ID</th>
-                <th className="px-5 py-3.5 font-semibold">Timestamp</th>
-                <th className="px-5 py-3.5 font-semibold">Actor / Role</th>
-                <th className="px-5 py-3.5 font-semibold">Action</th>
-                <th className="px-5 py-3.5 font-semibold">Target</th>
-                <th className="px-5 py-3.5 font-semibold">Outcome</th>
-                <th className="px-5 py-3.5 font-semibold">Details</th>
-                <th className="px-5 py-3.5 font-semibold text-right">Examine</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_event_id', 'Event ID')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_timestamp', 'Timestamp')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_actor_role', 'Actor / Role')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_action', 'Action')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_target', 'Target')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_outcome', 'Outcome')}</th>
+                <th className="px-5 py-3.5 font-semibold">{t('col_details', 'Details')}</th>
+                <th className="px-5 py-3.5 font-semibold text-right">{t('col_examine', 'Examine')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/80">
               {loading ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-slate-400 text-xs">
-                    Loading audit trail events...
+                    {t('loading', 'Loading audit trail events...')}
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-slate-500 text-xs">
-                    No audit records match the current filter or search criteria.
+                    {t('empty', 'No audit records match the current filter or search criteria.')}
                   </td>
                 </tr>
               ) : (
@@ -295,7 +296,7 @@ export const AuditPage: React.FC = () => {
                         title="Examine full audit record"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>Examine</span>
+                        <span>{t('btn_examine', 'Examine')}</span>
                       </button>
                     </td>
                   </tr>
@@ -308,7 +309,7 @@ export const AuditPage: React.FC = () => {
         {/* Pagination Footer */}
         <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
           <div className="flex items-center space-x-2">
-            <span>Rows per page:</span>
+            <span>{t('rows_per_page', 'Rows per page')}:</span>
             <select
               value={pageSize}
               onChange={(e) => {
@@ -329,7 +330,7 @@ export const AuditPage: React.FC = () => {
 
           <div className="flex items-center space-x-2">
             <span className="font-medium text-slate-600">
-              Page {page} of {totalPages}
+              {t('page_of', 'Page')} {page} of {totalPages}
             </span>
             <button
               disabled={page <= 1}
@@ -366,7 +367,7 @@ export const AuditPage: React.FC = () => {
             <div className="p-6 border-b border-slate-200 bg-slate-50 flex items-start justify-between">
               <div>
                 <div className="flex items-center space-x-2">
-                  <h2 className="text-xl font-bold text-slate-900 m-0">Audit Event #{selectedLog.id}</h2>
+                  <h2 className="text-xl font-bold text-slate-900 m-0">{t('drawer_audit_event', 'Audit Event')} #{selectedLog.id}</h2>
                   <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
                     selectedLog.outcome === 'SUCCESS'
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -395,7 +396,7 @@ export const AuditPage: React.FC = () => {
               <div>
                 <p className="font-semibold m-0 text-blue-950">Verified Institutional Ledger Record</p>
                 <p className="mt-0.5 text-blue-800 m-0 leading-relaxed">
-                  Cryptographically immutable entry. Recorded synchronously during transaction execution.
+                  {t('audit_immutable_notice', 'Cryptographically immutable entry. Recorded synchronously during transaction execution.')}
                 </p>
               </div>
             </div>
@@ -406,7 +407,7 @@ export const AuditPage: React.FC = () => {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
                   <UserIcon className="w-3.5 h-3.5 text-slate-400" />
-                  Actor & Origin Context
+                  {t('audit_actor_origin', 'Actor & Origin Context')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div>
@@ -437,7 +438,7 @@ export const AuditPage: React.FC = () => {
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-slate-400" />
-                  Action & Target Scope
+                  {t('audit_action_scope', 'Action & Target Scope')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
                   <div>
@@ -467,7 +468,7 @@ export const AuditPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 m-0">
                     <FileCode className="w-3.5 h-3.5 text-slate-400" />
-                    Recorded Event Payload
+                    {t('audit_recorded_payload', 'Recorded Event Payload')}
                   </h3>
                   {selectedLog.details && (
                     <button
@@ -477,12 +478,12 @@ export const AuditPage: React.FC = () => {
                       {copied ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          <span className="text-emerald-600">Copied!</span>
+                          <span className="text-emerald-600">{t('drawer_copied', 'Copied!')}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Payload</span>
+                          <span>{t('drawer_copy_payload', 'Copy Payload')}</span>
                         </>
                       )}
                     </button>
@@ -503,7 +504,7 @@ export const AuditPage: React.FC = () => {
                 onClick={() => setSelectedLog(null)}
                 className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 transition cursor-pointer"
               >
-                Close
+                {t('btn_close', 'Close')}
               </button>
             </div>
           </div>

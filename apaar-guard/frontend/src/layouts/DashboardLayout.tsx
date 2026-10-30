@@ -166,7 +166,7 @@ export const DashboardLayout: React.FC = () => {
             <div className="space-y-1">
               {!collapsed && (
                 <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Main Modules
+                  {t('nav_main_modules', 'Main Modules')}
                 </div>
               )}
               {filteredMainNav.map((item) => {
@@ -203,7 +203,7 @@ export const DashboardLayout: React.FC = () => {
             <div className="space-y-1 pt-2 border-t border-white/10">
               {!collapsed && (
                 <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Operations & Support
+                  {t('nav_operations_support', 'Operations & Support')}
                 </div>
               )}
               {filteredAdditionalNav.map((item) => {
@@ -305,7 +305,7 @@ export const DashboardLayout: React.FC = () => {
 
               <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pb-1">
-                  Main Modules
+                  {t('nav_main_modules', 'Main Modules')}
                 </div>
                 {filteredMainNav.map((item) => {
                   const Icon = item.icon;
@@ -327,7 +327,7 @@ export const DashboardLayout: React.FC = () => {
                 })}
 
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 pt-3 pb-1">
-                  Operations & Support
+                  {t('nav_operations_support', 'Operations & Support')}
                 </div>
                 {filteredAdditionalNav.map((item) => {
                   const Icon = item.icon;
@@ -387,7 +387,7 @@ export const DashboardLayout: React.FC = () => {
 
               {/* Breadcrumb Path */}
               <div className="flex items-center space-x-2 text-xs text-slate-500">
-                <span className="hidden sm:inline">Portal</span>
+                <span className="hidden sm:inline">{t('nav_portal', 'Portal')}</span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400 hidden sm:inline" />
                 <span className="font-semibold text-slate-900">{breadcrumb}</span>
               </div>

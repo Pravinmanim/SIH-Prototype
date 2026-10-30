@@ -115,10 +115,10 @@ export const UserProfileDropdown: React.FC = () => {
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono uppercase">{language}</span>
               </div>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-3 gap-1">
                 <button
                   onClick={() => setLanguage('en')}
-                  className={`px-2 py-1 rounded-lg font-medium text-xs flex items-center justify-center gap-1 transition cursor-pointer ${
+                  className={`px-1.5 py-1 rounded-lg font-medium text-[11px] flex items-center justify-center gap-1 transition cursor-pointer ${
                     language === 'en'
                       ? 'bg-blue-600 text-white font-semibold shadow-xs'
                       : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
@@ -129,7 +129,7 @@ export const UserProfileDropdown: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setLanguage('ta')}
-                  className={`px-2 py-1 rounded-lg font-medium text-xs flex items-center justify-center gap-1 transition cursor-pointer ${
+                  className={`px-1.5 py-1 rounded-lg font-medium text-[11px] flex items-center justify-center gap-1 transition cursor-pointer ${
                     language === 'ta'
                       ? 'bg-blue-600 text-white font-semibold shadow-xs'
                       : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
@@ -137,6 +137,17 @@ export const UserProfileDropdown: React.FC = () => {
                 >
                   {language === 'ta' && <Check className="w-3 h-3" />}
                   தமிழ்
+                </button>
+                <button
+                  onClick={() => setLanguage('hi')}
+                  className={`px-1.5 py-1 rounded-lg font-medium text-[11px] flex items-center justify-center gap-1 transition cursor-pointer ${
+                    language === 'hi'
+                      ? 'bg-blue-600 text-white font-semibold shadow-xs'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {language === 'hi' && <Check className="w-3 h-3" />}
+                  हिन्दी
                 </button>
               </div>
             </div>

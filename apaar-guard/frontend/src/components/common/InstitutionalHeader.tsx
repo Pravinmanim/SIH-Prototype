@@ -235,6 +235,18 @@ export const InstitutionalHeader: React.FC = () => {
                   <span>தமிழ் (Tamil)</span>
                   {language === 'ta' && <Check className="w-3.5 h-3.5 text-blue-600" />}
                 </button>
+                <button
+                  onClick={() => {
+                    setLanguage('hi');
+                    setLangDropdownOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                    language === 'hi' ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <span>हिन्दी (Hindi)</span>
+                  {language === 'hi' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                </button>
               </div>
             )}
           </div>
