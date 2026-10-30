@@ -24,6 +24,7 @@ wheels/
 .env
 
 # SQLite runtime DB (can be regenerated with python -m app.seed)
+*.db
 *.db-wal
 *.db-shm
 

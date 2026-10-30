@@ -1,18 +1,34 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, engine, SessionLocal
 import app.models  # Ensure all models are registered
 
-# Create DB tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure tables exist
+    Base.metadata.create_all(bind=engine)
+    # Automatically seed initial database on first launch if empty
+    db = SessionLocal()
+    try:
+        from app.models.institution import Institution
+        if db.query(Institution).first() is None:
+            from app.seed import seed_data
+            seed_data(db)
+    except Exception as e:
+        print(f"Initial seed check: {e}")
+    finally:
+        db.close()
+    yield
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="Software-only web platform for AICTE-approved institutions to validate APAAR IDs, detect duplicates, and monitor intake.",
     version="1.0.0",
+    lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -21,6 +37,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

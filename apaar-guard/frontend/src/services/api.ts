@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = (import.meta.env.VITE_API_URL as string)?.replace(/\/$/, '') || '/api';
 
 export class ApiError extends Error {
   status: number;
@@ -44,6 +44,16 @@ async function request<T>(endpoint: string, options: RequestInit = {}, useCache 
   }
 
   const headers = new Headers(options.headers || {});
+
+  // Send Bearer token if present in localStorage (critical for cross-domain Vercel -> Render)
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('apaar_token') : null;
+    if (token && !headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+  } catch {
+    // Ignore localStorage restrictions
+  }
 
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');

@@ -38,6 +38,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password,
     });
+    if (res.access_token) {
+      try {
+        localStorage.setItem('apaar_token', res.access_token);
+      } catch {
+        // Storage unavailable
+      }
+    }
     setUser(res.user);
   };
 
@@ -45,6 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.post('/auth/logout');
     } finally {
+      try {
+        localStorage.removeItem('apaar_token');
+      } catch {
+        // Storage unavailable
+      }
       setUser(null);
     }
   };

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
 from app.core.dependencies import get_current_user
@@ -40,15 +41,16 @@ def login(
 
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role, "inst": user.institution_id})
     
-    # Set HttpOnly cookie for secure auth
+    # Set HttpOnly cookie for secure auth (supports cross-domain in prod with samesite none)
+    is_prod = settings.APP_ENV != "development"
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         max_age=60 * 60 * 8,  # 8 hours
         expires=60 * 60 * 8,
-        samesite="lax",
-        secure=False  # Allow local dev
+        samesite="none" if is_prod else "lax",
+        secure=True if is_prod else False
     )
 
     record_audit_log(
@@ -74,7 +76,12 @@ def logout(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    response.delete_cookie(key="access_token")
+    is_prod = settings.APP_ENV != "development"
+    response.delete_cookie(
+        key="access_token",
+        samesite="none" if is_prod else "lax",
+        secure=True if is_prod else False
+    )
     record_audit_log(
         db=db,
         action="LOGOUT",
