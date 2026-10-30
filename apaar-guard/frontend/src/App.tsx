@@ -63,7 +63,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
   return <>{children}</>;
 };
 
-export const App: React.FC = () => {
+export function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
