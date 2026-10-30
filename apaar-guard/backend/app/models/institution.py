@@ -13,6 +13,9 @@ class Institution(Base, TimestampMixin):
     aicte_id = Column(String(100), unique=True, index=True, nullable=True)
     state = Column(String(100), nullable=True)
     district = Column(String(100), nullable=True)
+    support_phone = Column(String(50), nullable=True)
+    support_email = Column(String(100), nullable=True)
+    support_hours = Column(String(100), nullable=True)
 
     users = relationship("User", back_populates="institution", cascade="all, delete-orphan")
     courses = relationship("Course", back_populates="institution", cascade="all, delete-orphan")

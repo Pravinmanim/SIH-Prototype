@@ -33,6 +33,9 @@ class InstitutionResponse(BaseModel):
     aicte_id: Optional[str] = None
     state: Optional[str] = None
     district: Optional[str] = None
+    support_phone: Optional[str] = None
+    support_email: Optional[str] = None
+    support_hours: Optional[str] = None
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

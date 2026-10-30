@@ -1,12 +1,13 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { LanguageProvider } from './i18n/LanguageContext';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { LoginPage } from './pages/LoginPage';
 import { ToastProvider } from './components/ui/Toast';
 import { Skeleton } from './components/ui/Skeleton';
 
-// Code splitting & lazy loading for secondary pages (Vercel-grade bundle optimization)
+// Code splitting & lazy loading for pages
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const StudentsPage = lazy(() => import('./pages/StudentsPage').then(m => ({ default: m.StudentsPage })));
 const BulkImportPage = lazy(() => import('./pages/BulkImportPage').then(m => ({ default: m.BulkImportPage })));
@@ -14,6 +15,10 @@ const VerificationPage = lazy(() => import('./pages/VerificationPage').then(m =>
 const IntakePage = lazy(() => import('./pages/IntakePage').then(m => ({ default: m.IntakePage })));
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const AuditPage = lazy(() => import('./pages/AuditPage').then(m => ({ default: m.AuditPage })));
+const HelpPage = lazy(() => import('./pages/HelpPage').then(m => ({ default: m.HelpPage })));
+const ToolsPage = lazy(() => import('./pages/ToolsPage').then(m => ({ default: m.ToolsPage })));
+const RulesPage = lazy(() => import('./pages/RulesPage').then(m => ({ default: m.RulesPage })));
+const InstitutionSettingsPage = lazy(() => import('./pages/InstitutionSettingsPage').then(m => ({ default: m.InstitutionSettingsPage })));
 
 const PageLoadingFallback = () => (
   <div className="space-y-6 animate-pulse p-2">
@@ -60,86 +65,122 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean 
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+    <LanguageProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
 
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route 
-                path="dashboard" 
+              <Route
+                path="/"
                 element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <DashboardPage />
-                  </Suspense>
-                } 
-              />
-              <Route 
-                path="students" 
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <StudentsPage />
-                  </Suspense>
-                } 
-              />
-              <Route 
-                path="import" 
-                element={
-                  <ProtectedRoute adminOnly>
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <BulkImportPage />
-                    </Suspense>
+                  <ProtectedRoute>
+                    <DashboardLayout />
                   </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="verification" 
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <VerificationPage />
-                  </Suspense>
-                } 
-              />
-              <Route 
-                path="intake" 
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <IntakePage />
-                  </Suspense>
-                } 
-              />
-              <Route 
-                path="reports" 
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <ReportsPage />
-                  </Suspense>
-                } 
-              />
-              <Route 
-                path="audit" 
-                element={
-                  <Suspense fallback={<PageLoadingFallback />}>
-                    <AuditPage />
-                  </Suspense>
-                } 
-              />
-            </Route>
+                }
+              >
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route 
+                  path="dashboard" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <DashboardPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="students" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <StudentsPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="import" 
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <BulkImportPage />
+                      </Suspense>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="verification" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <VerificationPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="intake" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <IntakePage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="reports" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <ReportsPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="audit" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AuditPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="help" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <HelpPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="tools" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <ToolsPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="rules" 
+                  element={
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <RulesPage />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="settings" 
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <Suspense fallback={<PageLoadingFallback />}>
+                        <InstitutionSettingsPage />
+                      </Suspense>
+                    </ProtectedRoute>
+                  } 
+                />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </ToastProvider>
-    </AuthProvider>
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 };
 

@@ -64,6 +64,8 @@ from app.api.dashboard import router as dashboard_router
 from app.api.intake import router as intake_router
 from app.api.reports import router as reports_router
 from app.api.audit import router as audit_router
+from app.api.institution import router as institution_router
+from app.api.notifications import router as notifications_router
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(validation_router, prefix="/api")
@@ -74,6 +76,8 @@ app.include_router(dashboard_router, prefix="/api")
 app.include_router(intake_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(audit_router, prefix="/api")
+app.include_router(institution_router, prefix="/api")
+app.include_router(notifications_router, prefix="/api")
 
 @app.get("/api/health")
 def health_check():
