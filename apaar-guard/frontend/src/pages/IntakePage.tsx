@@ -6,7 +6,14 @@ import {
   ShieldAlert,
   Users,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  BookOpen,
+  Copy,
+  Check
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -30,6 +37,14 @@ export const IntakePage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Search, Filter, Pagination & Examine Row
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [examiningItem, setExaminingItem] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
   const fetchIntake = async () => {
     setLoading(true);
     try {
@@ -45,6 +60,17 @@ export const IntakePage: React.FC = () => {
   useEffect(() => {
     fetchIntake();
   }, [selectedYear]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedYear, searchTerm, statusFilter, pageSize]);
+
+  const handleCopyCourseSummary = (item: any) => {
+    const text = `Course: ${item.course_name} (${item.course_code})\nAcademic Year: ${selectedYear}\nApproved Intake: ${item.approved_intake || 'Not Configured'}\nEnrolled: ${item.current_count}\nRemaining: ${item.remaining_capacity}\nUtilization: ${item.utilization_percent}%\nStatus: ${item.status}`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const openEditModal = (item: any) => {
     setEditingItem(item);
@@ -93,6 +119,31 @@ export const IntakePage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const allItems = intakeData?.items || [];
+  const filteredItems = allItems.filter((item: any) => {
+    if (statusFilter !== 'ALL') {
+      if (statusFilter === 'over' && item.remaining_capacity >= 0) return false;
+      if (statusFilter === 'near' && (item.utilization_percent < 90 || item.utilization_percent > 100)) return false;
+      if (statusFilter === 'available' && (item.utilization_percent >= 90 || !item.has_config)) return false;
+      if (statusFilter === 'unconfigured' && item.has_config && item.approved_intake > 0) return false;
+    }
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      return (
+        (item.course_name && item.course_name.toLowerCase().includes(q)) ||
+        (item.course_code && item.course_code.toLowerCase().includes(q)) ||
+        (item.status && item.status.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
+
+  const total = filteredItems.length;
+  const totalPages = Math.ceil(total / pageSize) || 1;
+  const startIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = Math.min(page * pageSize, total);
+  const paginatedItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className="space-y-6">
@@ -169,6 +220,50 @@ export const IntakePage: React.FC = () => {
         </div>
       )}
 
+      {/* Search and Status Filters */}
+      <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by course name or code (e.g. Computer Science, BTECH)..."
+            className="w-full pl-9 pr-7 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-1 overflow-x-auto pb-1 md:pb-0 text-xs font-semibold">
+          {[
+            { id: 'ALL', label: t('all', 'All Courses') },
+            { id: 'available', label: 'Within Limit' },
+            { id: 'near', label: 'Near Capacity (≥90%)' },
+            { id: 'over', label: 'Over Capacity' },
+            { id: 'unconfigured', label: 'Unconfigured' },
+          ].map((st) => (
+            <button
+              key={st.id}
+              onClick={() => setStatusFilter(st.id)}
+              className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition cursor-pointer ${
+                statusFilter === st.id
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {st.label}
+            </button>
+          ))}
+        </div>
+      </Card>
+
       {/* Intake Table */}
       <Card rounded="2xl" className="border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
@@ -181,7 +276,7 @@ export const IntakePage: React.FC = () => {
                 <th className="px-5 py-3.5 font-semibold">{t('col_remaining', 'Remaining')}</th>
                 <th className="px-5 py-3.5 font-semibold">{t('col_utilization', 'Utilization')}</th>
                 <th className="px-5 py-3.5 font-semibold">{t('col_status', 'Status')}</th>
-                {isAdmin && <th className="px-5 py-3.5 font-semibold text-right">{t('col_actions', 'Action')}</th>}
+                <th className="px-5 py-3.5 font-semibold text-right">{t('col_actions', 'Action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/80">
@@ -191,17 +286,21 @@ export const IntakePage: React.FC = () => {
                     {t('loading', 'Loading intake capacity records...')}
                   </td>
                 </tr>
-              ) : !intakeData || intakeData.items.length === 0 ? (
+              ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-500 text-xs">
-                    {t('empty', 'No intake records found for this year.')}
+                    {t('empty', 'No intake records found matching your filters.')}
                   </td>
                 </tr>
               ) : (
-                intakeData.items.map((item: any) => (
-                  <tr key={item.course_id} className="hover:bg-slate-50/80 transition-colors">
+                paginatedItems.map((item: any) => (
+                  <tr 
+                    key={item.course_id} 
+                    onClick={() => setExaminingItem(item)}
+                    className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                  >
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-900">{item.course_name}</div>
+                      <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{item.course_name}</div>
                       <div className="text-xs text-slate-400 font-mono">{item.course_code}</div>
                     </td>
                     <td className="px-5 py-3.5 font-mono text-sm font-semibold text-slate-800">
@@ -243,22 +342,77 @@ export const IntakePage: React.FC = () => {
                         </p>
                       )}
                     </td>
-                    {isAdmin && (
-                      <td className="px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end space-x-1.5">
                         <button
-                          onClick={() => openEditModal(item)}
-                          className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                          onClick={() => setExaminingItem(item)}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition cursor-pointer"
+                          title="Examine Course Intake Details"
                         >
-                          <Edit3 className="w-3.5 h-3.5 mr-1" />
-                          {t('btn_edit_quota', 'Set Intake')}
+                          <Eye className="w-3.5 h-3.5 mr-1" />
+                          <span>{t('examine', 'Examine')}</span>
                         </button>
-                      </td>
-                    )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => openEditModal(item)}
+                            className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 mr-1" />
+                            <span>{t('btn_edit_quota', 'Set Intake')}</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <div className="flex items-center space-x-2">
+            <span>{t('rows_per_page', 'Rows per page')}:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="border border-slate-300 rounded-lg px-2.5 py-1 bg-white outline-none font-medium text-slate-700"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-slate-400 ml-2">
+              Showing {startIndex} - {endIndex} of {total} courses
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="font-medium text-slate-600">
+              {t('page', 'Page')} {page} {t('of', 'of')} {totalPages}
+            </span>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="p-1.5 rounded-lg border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer disabled:cursor-not-allowed"
+              title="Previous Page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1.5 rounded-lg border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer disabled:cursor-not-allowed"
+              title="Next Page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </Card>
 
@@ -347,6 +501,133 @@ export const IntakePage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* EXAMINE ROW MODAL */}
+      {examiningItem && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setExaminingItem(null)}></div>
+          <div className="relative bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl z-10 border border-slate-200 space-y-5 animate-in fade-in duration-150">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div className="space-y-0.5">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-base font-bold text-slate-900 m-0">
+                    {examiningItem.course_name}
+                  </h3>
+                  <StatusBadge status={examiningItem.status} size="sm" />
+                </div>
+                <p className="text-xs text-slate-500 font-mono m-0">
+                  Code: <span className="font-semibold text-slate-700">{examiningItem.course_code}</span> • Academic Year: <span className="font-semibold text-slate-700">{selectedYear}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setExaminingItem(null)}
+                className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Capacity KPI Grid */}
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <span className="text-[11px] text-slate-500 block">Approved Intake</span>
+                <span className="font-mono text-base font-bold text-slate-900">
+                  {examiningItem.has_config ? examiningItem.approved_intake : 'Not Set'}
+                </span>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <span className="text-[11px] text-blue-700 block">Enrolled Count</span>
+                <span className="font-mono text-base font-bold text-blue-900">
+                  {examiningItem.current_count}
+                </span>
+              </div>
+              <div className={`p-3 rounded-xl border ${
+                examiningItem.remaining_capacity < 0 
+                  ? 'bg-rose-50 border-rose-200 text-rose-900' 
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+              }`}>
+                <span className="text-[11px] block opacity-80">Remaining Seats</span>
+                <span className="font-mono text-base font-bold">
+                  {examiningItem.has_config 
+                    ? (examiningItem.remaining_capacity < 0 ? `Over by ${Math.abs(examiningItem.remaining_capacity)}` : examiningItem.remaining_capacity) 
+                    : '—'}
+                </span>
+              </div>
+            </div>
+
+            {/* Utilization Gauge */}
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-700">Intake Capacity Utilization</span>
+                <span className="font-mono font-bold text-slate-900">
+                  {examiningItem.has_config ? `${examiningItem.utilization_percent}%` : 'Configuration Missing'}
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${
+                    examiningItem.utilization_percent > 100 ? 'bg-rose-500' :
+                    examiningItem.utilization_percent >= 90 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min(100, examiningItem.utilization_percent || 0)}%` }}
+                ></div>
+              </div>
+              <p className="text-[11px] text-slate-500 m-0">
+                {examiningItem.utilization_percent > 100
+                  ? 'CRITICAL ALERT: Enrolled students exceed authorized AICTE capacity.'
+                  : examiningItem.utilization_percent >= 90
+                  ? 'WARNING: Course capacity is above 90% utilization threshold.'
+                  : 'Normal institutional enrollment level within authorized ceiling.'}
+              </p>
+            </div>
+
+            {/* Regulatory Reference & Notes */}
+            <div className="space-y-1.5 text-xs">
+              <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                AICTE Regulatory Approval Reference
+              </span>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 text-slate-600 font-mono text-[11px]">
+                {examiningItem.notes || 'No administrative approval notes recorded. Default statutory intake applied.'}
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+              <button
+                onClick={() => handleCopyCourseSummary(examiningItem)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied Details' : 'Copy Course Summary'}</span>
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setExaminingItem(null)}
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  {t('close', 'Close')}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => {
+                      const it = examiningItem;
+                      setExaminingItem(null);
+                      openEditModal(it);
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 shadow-xs transition cursor-pointer flex items-center gap-1"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>{t('btn_edit_quota', 'Configure Intake')}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

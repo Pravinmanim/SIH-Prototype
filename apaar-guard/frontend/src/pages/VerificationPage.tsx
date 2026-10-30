@@ -4,7 +4,10 @@ import {
   CheckCircle, 
   Eye, 
   X, 
-  ShieldAlert
+  ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
+  Search
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -41,6 +44,9 @@ export const VerificationPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [severityFilter, setSeverityFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(20);
 
   // Case Modal state
   const [selectedCaseId, setSelectedCaseId] = useState<number | null>(null);
@@ -69,6 +75,11 @@ export const VerificationPage: React.FC = () => {
   useEffect(() => {
     fetchCases();
   }, [statusFilter, severityFilter]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, severityFilter, searchTerm, pageSize]);
 
   const openCaseModal = async (id: number) => {
     setSelectedCaseId(id);
@@ -115,6 +126,27 @@ export const VerificationPage: React.FC = () => {
     }
   };
 
+  // Search and Pagination logic
+  const filteredCases = cases.filter((c) => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      String(c.id).includes(q) ||
+      (c.student_name && c.student_name.toLowerCase().includes(q)) ||
+      (c.roll_number && c.roll_number.toLowerCase().includes(q)) ||
+      (c.course_code && c.course_code.toLowerCase().includes(q)) ||
+      (c.reason && c.reason.toLowerCase().includes(q)) ||
+      (c.severity && c.severity.toLowerCase().includes(q)) ||
+      (c.status && c.status.toLowerCase().includes(q))
+    );
+  });
+
+  const total = filteredCases.length;
+  const totalPages = Math.ceil(total / pageSize) || 1;
+  const startIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const endIndex = Math.min(page * pageSize, total);
+  const paginatedCases = filteredCases.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -142,9 +174,47 @@ export const VerificationPage: React.FC = () => {
         </div>
       )}
 
-      {/* Filter Tabs & Severity Select */}
-      <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center space-x-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 text-xs font-semibold">
+      {/* Search and Filters */}
+      <Card rounded="2xl" className="p-4 border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Quick Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by student, roll number, case ID, reason..."
+              className="w-full pl-9 pr-7 py-1.5 text-xs border border-slate-300 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-slate-500">{t('filter_severity', 'Severity')}:</span>
+            <select
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value)}
+              className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg outline-none bg-white font-medium text-slate-700"
+            >
+              <option value="ALL">{t('filter_all', 'All Severities')}</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex items-center space-x-1 overflow-x-auto w-full pb-1 text-xs font-semibold border-t border-slate-100 pt-3">
           {[
             { id: 'ALL', label: t('tab_all', 'All Cases') },
             { id: 'Pending Review', label: t('tab_pending', 'Pending Review') },
@@ -165,21 +235,6 @@ export const VerificationPage: React.FC = () => {
               {st.label}
             </button>
           ))}
-        </div>
-
-        <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <span className="text-xs font-semibold text-slate-500">{t('filter_severity', 'Severity')}:</span>
-          <select
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value)}
-            className="text-xs px-2.5 py-1.5 border border-slate-300 rounded-lg outline-none bg-white font-medium text-slate-700"
-          >
-            <option value="ALL">{t('filter_all', 'All Severities')}</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
         </div>
       </Card>
 
@@ -205,20 +260,24 @@ export const VerificationPage: React.FC = () => {
                     {t('loading', 'Loading verification queue...')}
                   </td>
                 </tr>
-              ) : cases.length === 0 ? (
+              ) : filteredCases.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-slate-500 text-xs">
                     {t('verif_empty_pending', 'No review cases currently pending determination.')}
                   </td>
                 </tr>
               ) : (
-                cases.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                paginatedCases.map((c) => (
+                  <tr 
+                    key={c.id} 
+                    onClick={() => openCaseModal(c.id)}
+                    className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                  >
                     <td className="px-5 py-3.5 font-mono text-xs font-bold text-slate-800">
                       #{c.id}
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-slate-900">{c.student_name}</div>
+                      <div className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{c.student_name}</div>
                       <div className="text-xs text-slate-500 font-mono">
                         {c.roll_number} • {c.course_code}
                       </div>
@@ -241,13 +300,14 @@ export const VerificationPage: React.FC = () => {
                     <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-5 py-3.5 text-right">
+                    <td className="px-5 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => openCaseModal(c.id)}
-                        className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition"
+                        className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition cursor-pointer"
+                        title="Examine & Review Case"
                       >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Review</span>
+                        <Eye className="w-3.5 h-3.5 mr-1" />
+                        <span>{t('examine', 'Examine')}</span>
                       </button>
                     </td>
                   </tr>
@@ -255,6 +315,51 @@ export const VerificationPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <div className="flex items-center space-x-2">
+            <span>{t('rows_per_page', 'Rows per page')}:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="border border-slate-300 rounded-lg px-2.5 py-1 bg-white outline-none font-medium text-slate-700"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-slate-400 ml-2">
+              Showing {startIndex} - {endIndex} of {total} review cases
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <span className="font-medium text-slate-600">
+              {t('page', 'Page')} {page} {t('of', 'of')} {totalPages}
+            </span>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="p-1.5 rounded-lg border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer disabled:cursor-not-allowed"
+              title="Previous Page"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1.5 rounded-lg border border-slate-300 disabled:opacity-40 hover:bg-slate-100 transition cursor-pointer disabled:cursor-not-allowed"
+              title="Next Page"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </Card>
 
